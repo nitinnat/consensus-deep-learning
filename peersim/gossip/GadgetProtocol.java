@@ -160,7 +160,6 @@ public void nextCycle(Node node, int pid) {
 		PegasosNode pn = (PegasosNode)node; // Initializes the Pegasos Node
 		
 		final String resourcepath = pn.resourcepath;
-		String csv_filename = resourcepath + "/run" + pn.num_run + "/vpnn_results_temp.csv";
 			System.out.println(iter);
 
 			// If only 1 node exists - then we implement the centralized NN
@@ -169,7 +168,7 @@ public void nextCycle(Node node, int pid) {
 				try {
 					pn.neural_network.train(pn.train_features, pn.train_labels, 
 											pn.test_features, pn.test_labels, 
-											1, csv_filename);
+											1, pn.csv_filename,(int)node.getID(), 1);
 					
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -190,6 +189,9 @@ public void nextCycle(Node node, int pid) {
 				INDArray pn_output = pn_layer_outputs.get(pn_layer_outputs.size()-1);
 				INDArray peer_output = peer_layer_outputs.get(peer_layer_outputs.size()-1);
 				INDArray avg_output = pn_output.add(peer_output).mul(0.5);
+				
+
+				
 				pn_layer_outputs.set(pn_layer_outputs.size()-1, avg_output);
 				peer_layer_outputs.set(peer_layer_outputs.size()-1, avg_output);
 				
@@ -215,25 +217,49 @@ public void nextCycle(Node node, int pid) {
 	    			List<INDArray> peer_cur_layer_outputs = new ArrayList<INDArray>();
 	    			peer_cur_layer_outputs.add(peer_cur_first);
 	    			peer_cur_layer_outputs.add(peer_cur_second);
-		    		pn.neural_network.backpropagate(peer_cur_layer_outputs, peer_cur_training_data, cur_training_labels);
+		    		peer.neural_network.backpropagate(peer_cur_layer_outputs, peer_cur_training_data, cur_training_labels);
 		    		
 		    		
 	    		}
 			
 				// After all the nodes have been processed in one cycle, we compute losses and accuracies
-				for(int i=0; i < Network.size(); i++) {
-		        	PegasosNode temp_node = (PegasosNode)Network.get(i);
-		        	// Train Loss and Accuracy
-		        	List<INDArray> temp_layer_outputs_train = temp_node.neural_network.feedforward(temp_node.train_features);
-		        	temp_train_pred_outputs = temp_layer_outputs_train.get(temp_layer_outputs_train.size()-1);
-		        	
-		        	// Test Loss and Accuracy
-		        	List<INDArray> temp_layer_outputs_test = temp_node.neural_network.feedforward(temp_node.test_features);
-				}	
-				
+				if(pn.getID() == Network.size()-1) {
+					String csv_filename = resourcepath + "/run" + pn.num_run + "/vpnn_results_temp_" + Network.size() + ".csv";
+					BufferedWriter bw;
+					try {
+						bw = new BufferedWriter(new FileWriter(csv_filename, true));
+						for(int i=0; i < Network.size(); i++) {
+				        	PegasosNode temp_node = (PegasosNode)Network.get(i);
+				        	// Train Loss and Accuracy
+				        	List<INDArray> temp_layer_outputs_train = temp_node.neural_network.feedforward(temp_node.train_features);
+				        	INDArray temp_train_pred_outputs = temp_layer_outputs_train.get(temp_layer_outputs_train.size()-1);
+				        	List<Double> train_stats = NeuralNetwork.compute_stats(temp_node.train_labels, temp_train_pred_outputs);
+				        	double train_loss = train_stats.get(0);
+				        	double train_acc = train_stats.get(1);
+				        
+				        	// Test Loss and Accuracy
+				        	List<INDArray> temp_layer_outputs_test = temp_node.neural_network.feedforward(temp_node.test_features);
+				        	INDArray temp_test_pred_outputs = temp_layer_outputs_test.get(temp_layer_outputs_test.size()-1);
+				        	List<Double> test_stats = NeuralNetwork.compute_stats(temp_node.test_labels, temp_test_pred_outputs);
+				        	double test_loss = test_stats.get(0);
+				        	double test_acc = test_stats.get(1);
+				        	
+				        	// Train and Test AUC
+				        	
+				        	double train_auc = NeuralNetwork.compute_auc(temp_node.train_labels, temp_train_pred_outputs);
+				        	double test_auc = NeuralNetwork.compute_auc(temp_node.test_labels, temp_test_pred_outputs);
+				        	
+				        	System.out.println("Iter: "+iter+" Node: "+ i + " TrainAcc: "+train_acc +" TestAcc: " + test_acc);
+				        	System.out.println("TrainLoss: "+ train_loss + " TestLoss: "+ test_loss);
+				        	System.out.println("TrainAUC: "+ train_auc + " TestAUC: "+ test_auc);
+				        	bw.write(iter + "," + i + ","+ train_loss+ ","+test_loss+','+train_acc+","+test_acc+','+train_auc+","+test_auc);
+							bw.write("\n");
+						}
+						bw.close();
+					}
+					catch (IOException e) {e.printStackTrace();}
+					}	
 			}
-			
-			
 	}
 
 	/**

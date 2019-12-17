@@ -63,7 +63,7 @@ public class NeuronLayer {
 	INDArray synaptic_weights;
 	public NeuronLayer(int number_of_inputs_per_neuron, int number_of_neurons) {
 		// synaptic_weights = Nd4j.rand(new int[] {number_of_inputs_per_neuron, number_of_neurons}).mul(0.1);
-		double sd = 1/(double)number_of_inputs_per_neuron;
+		double sd = 1/(double)(Math.sqrt(number_of_inputs_per_neuron));
 		synaptic_weights = Nd4j.rand(new int[] {number_of_inputs_per_neuron, number_of_neurons}, new NormalDistribution(0,sd));
 	}
 	

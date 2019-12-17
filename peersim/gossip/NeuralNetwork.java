@@ -69,6 +69,7 @@ import static org.nd4j.linalg.ops.transforms.Transforms.*;
 public class NeuralNetwork {
 	NeuronLayer layer1;
 	NeuronLayer layer2;
+	double learning_rate;
 	
 	public static DataSet readCSVDataset(
 	        String csvFileClasspath, int batchSize, int labelIndex, int numClasses)
@@ -79,9 +80,10 @@ public class NeuralNetwork {
 	        DataSetIterator iterator = new RecordReaderDataSetIterator(rr, batchSize, labelIndex, numClasses);
 	        return iterator.next();
 	    }
-	public NeuralNetwork(NeuronLayer layerA, NeuronLayer layerB) {
+	public NeuralNetwork(NeuronLayer layerA, NeuronLayer layerB, double lr) {
 		layer1 = layerA;
 		layer2 = layerB;
+		learning_rate = lr;
 	}
 	
 	public INDArray _sigmoid(INDArray x) {	
@@ -130,8 +132,8 @@ public class NeuralNetwork {
 	    INDArray layer1_error = layer2_delta.mmul(layer2.synaptic_weights.transpose());
 	    INDArray layer1_delta = layer1_error.mul(_sigmoid_derivative(output_from_layer_1));
 	    
-	    INDArray layer1_adjustment = cur_training_data.transpose().mmul(layer1_delta).mul(0.1);
-	    INDArray layer2_adjustment = output_from_layer_1.transpose().mmul(layer2_delta).mul(0.1);
+	    INDArray layer1_adjustment = cur_training_data.transpose().mmul(layer1_delta).mul(learning_rate);
+	    INDArray layer2_adjustment = output_from_layer_1.transpose().mmul(layer2_delta).mul(learning_rate);
 	    
 	    layer1.synaptic_weights.addi(layer1_adjustment);
 	    layer2.synaptic_weights.addi(layer2_adjustment);
@@ -168,6 +170,16 @@ public class NeuralNetwork {
     	return evaluation.accuracy();
         
     }
+    
+    public static double compute_auc(INDArray y_true, INDArray y_pred) {
+    	ROCBinary roc = new ROCBinary(0);
+        roc.eval(y_true, y_pred);
+        double auc = roc.calculateAUC(0);
+        return auc;
+        	
+    }
+    
+    
     public static void scaleMinMax(double min, double max, INDArray toScale) {
         //X_std = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0)) X_scaled = X_std * (max - min) + min
 
@@ -193,14 +205,10 @@ public class NeuralNetwork {
     
     public void train(INDArray training_set_inputs, INDArray training_set_outputs,
     		INDArray testing_set_inputs, INDArray testing_set_outputs,
-    		int number_of_training_iterations, String csv_filename) throws IOException {
+    		int number_of_training_iterations, String csv_filename, int node, int mode) throws IOException {
     	INDArray output_from_layer_1, output_from_layer_2;
-    	String opString = "Iter,TrainLoss,TestLoss,TrainAccuracy,TestAccuracy";
-    	
-		BufferedWriter bw = new BufferedWriter(new FileWriter(csv_filename));
-		bw.write(opString);
-		bw.write("\n");
-    	
+    	BufferedWriter bw = new BufferedWriter(new FileWriter(csv_filename, true));
+
 	    	for (int i=0; i<number_of_training_iterations;i++) {
 	    		for(int j=0; j<training_set_inputs.size(0);j++) {
 	    			// Feedforward
@@ -212,7 +220,7 @@ public class NeuralNetwork {
 		    		// Backprop
 		    		backpropagate(layer_outputs, cur_training_data, cur_training_labels);
 	    		
-	    		}
+	    			}
 		    		
 	    		// compute train loss
 	    		List<INDArray> train_layer_outputs = feedforward(training_set_inputs);
@@ -226,15 +234,28 @@ public class NeuralNetwork {
 	    	    double train_acc = train_res.get(1);
 	    	    double test_loss = test_res.get(0);
 	    	    double test_acc = test_res.get(1);
-	    		
-	    		System.out.println("iter" + i + " train_loss: " + train_loss +" test_loss: "+ test_loss +
+	    	    
+	    	    INDArray train_pred = train_layer_outputs.get(train_layer_outputs.size()-1);//.cond(Conditions.greaterThan(0.5));
+	    	    INDArray test_pred = test_layer_outputs.get(test_layer_outputs.size()-1);//.cond(Conditions.greaterThan(0.5));
+	    	    double train_auc = compute_auc(training_set_outputs, train_pred);
+	    		double test_auc = compute_auc(testing_set_outputs, test_pred);
+	    	    
+	    		int iter;
+	    		if(mode == 0) {
+		    		iter = i;
+		    	}
+		    	else {
+		    		iter = CDState.getCycle();
+		    	}
+		    	   
+	    		System.out.println("iter" + iter + " train_loss: " + train_loss +" test_loss: "+ test_loss +
 	    				" train_acc: " + train_acc + " test_acc: " + test_acc);
+	    		System.out.println("Train AUC: " + train_auc + " Test AUC: " + test_auc);
 				// Write to file
-				bw.write(i + "," + train_loss+ ","+test_loss+','+train_acc+","+test_acc);
+				bw.write(iter + "," + node + ","+ train_loss+ ","+test_loss+','+train_acc+","+test_acc+","+train_auc+","+test_auc);
 				bw.write("\n");
 	    	}
-	    	
-    	bw.close();
+	    	bw.close();
     }
 	
     
@@ -247,7 +268,7 @@ public class NeuralNetwork {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(csv_filename));
 		bw.write(opString);
 		bw.write("\n");
-    	
+    	int iter;
 	    	for (int i=0; i<number_of_training_iterations;i++) {
 	    		// Feedforward
 	    			
@@ -271,6 +292,7 @@ public class NeuralNetwork {
 		    	    layer2.synaptic_weights.addi(layer2_adjustment).mul(0.01);
 	    		
 	    		
+		    	 
 	    		// compute train loss
 	    		//List<INDArray> layer_outputs = feedforward(training_set_inputs);
 	    		//output_from_layer_1 = layer_outputs.get(0);
@@ -286,6 +308,7 @@ public class NeuralNetwork {
 	    		double test_loss = test_layer2_error.mul(test_layer2_error).mul(0.5).sum(0).getDouble(0);
 	    	    
 	    		System.out.println("iter" + i + " train_loss: " + train_loss +" test_loss: "+ test_loss);
+	    		
 				bw.write(i + "," + train_loss+ ","+test_loss);
 				bw.write("\n");
 	    	}
@@ -295,19 +318,19 @@ public class NeuralNetwork {
     
     public static void main(String args[]) throws IOException, InterruptedException {
         // Create layer 1 (4 neurons, each with 3 inputs)
-        NeuronLayer layer1 = new NeuronLayer(3, 20);
-        NeuronLayer layer2 = new NeuronLayer(20, 1);
-        
+        NeuronLayer layer1 = new NeuronLayer(501, 50);
+        NeuronLayer layer2 = new NeuronLayer(50, 1);
+        double learning_rate = 0.01;
         
         // Combine the layers to create a neural network
-        NeuralNetwork neural_network = new NeuralNetwork(layer1, layer2);
+        NeuralNetwork neural_network = new NeuralNetwork(layer1, layer2, learning_rate);
         
         System.out.println("Initial weights \n");
         neural_network.print_weights();
 
         
-        String localTrainFilepath = "C:/Users/Nitin/Documents/consensus-dl/data/saturn/saturn_data_train.csv";
-    	String localTestFilepath = "C:\\Users\\Nitin\\Documents\\consensus-dl\\data\\saturn\\saturn_data_eval.csv";
+        String localTrainFilepath = "C:/Users/Nitin/Documents/consensus-dl/data/madelon/madelon_train_binary.csv";
+    	String localTestFilepath = "C:\\Users\\Nitin\\Documents\\consensus-dl\\data\\madelon\\madelon_test_binary.csv";
         
     	DataSet trainSet = readCSVDataset(
 		           localTrainFilepath,
@@ -338,14 +361,18 @@ public class NeuralNetwork {
 	    
 	    
 	    System.out.println("Creating csv file to store the results.");
-    	String csv_filename = "C:\\Users\\Nitin\\Documents\\consensus-dl\\data\\saturn\\results.csv";
+    	String csv_filename = "C:\\Users\\Nitin\\Documents\\consensus-dl\\data\\madelon\\run1\\vpnn_results_temp_1.csv";
 		System.out.println("Storing in " + csv_filename);
 		
 		
         //System.out.println(training_set_inputs);
-        
-        neural_network.train(training_set_inputs, training_set_outputs, testing_set_inputs, testing_set_outputs, 50, csv_filename);
+		String opString = "Iter,Node,TrainLoss,TestLoss,TrainAccuracy,TestAccuracy";
+    	
+		BufferedWriter bw = new BufferedWriter(new FileWriter(csv_filename));
+		bw.write(opString);
+		bw.write("\n");
+        neural_network.train(training_set_inputs, training_set_outputs, testing_set_inputs, testing_set_outputs, 200, csv_filename, 0, 0);
 		
-	
+        
     }
 }

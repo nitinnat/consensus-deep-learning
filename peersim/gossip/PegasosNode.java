@@ -138,6 +138,7 @@ public class PegasosNode implements Node {
 	public int num_classes;
 	public int num_hidden_nodes;
 	public NeuralNetwork neural_network;
+	public String csv_filename;
 	
 	// ================ constructor and initialization =================
 	// =================================================================
@@ -171,6 +172,7 @@ public class PegasosNode implements Node {
 		test_length = Configuration.getInt(prefix + "." + PAR_TESTLEN, 0);
 		num_classes = Configuration.getInt(prefix + "." + PAR_NUMCLASSES, 1);
 		num_hidden_nodes = Configuration.getInt(prefix + "." + PAR_NUMHIDDEN, 1);
+		learning_rate = Configuration.getDouble(prefix + "." + PAR_LEARNING_RATE, 0.01);
 		
 		System.out.println("model file and train file are saved in: " + resourcepath);
 		CommonState.setNode(this);
@@ -243,11 +245,12 @@ public class PegasosNode implements Node {
 	    if (result.getID() == 0) {
 	    	// Create headers to store the results
 	    	System.out.println("Creating csv file to store the results.");
-	    	String csv_filename = resourcepath + "/run" + result.num_run + "/vpnn_results_temp_" + Network.size() + ".csv";
-			System.out.println("Storing in " + csv_filename);
-			String opString = "Iter,Node,TrainLoss,TestLoss";
+	    	result.csv_filename = resourcepath + "/run" + result.num_run + "/vpnn_results_temp_" + Network.size() + ".csv";
+			System.out.println("Storing in " + result.csv_filename);
+			String opString = "Iter,Node,TrainLoss,TestLoss,TrainAccuracy,TestAccuracy,TrainAUC,TestAUC";
 			try {
-				BufferedWriter bw = new BufferedWriter(new FileWriter(csv_filename));
+				System.out.println("Writing header to " + result.csv_filename);
+				BufferedWriter bw = new BufferedWriter(new FileWriter(result.csv_filename));
 				bw.write(opString);
 				bw.write("\n");
 				bw.close();
@@ -289,7 +292,7 @@ public class PegasosNode implements Node {
 	        NeuronLayer layer2 = new NeuronLayer(num_hidden_nodes, num_outputs);
 	        
 	        // Combine the layers to create a neural network
-	        result.neural_network = new NeuralNetwork(layer1, layer2);
+	        result.neural_network = new NeuralNetwork(layer1, layer2, learning_rate);
 	        
 	        System.out.println("Initial weights \n");
 	        result.neural_network.print_weights();
