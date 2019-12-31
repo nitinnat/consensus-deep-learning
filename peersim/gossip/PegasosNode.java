@@ -94,6 +94,8 @@ public class PegasosNode implements Node {
 	private static final String PAR_PATH = "resourcepath";	
 	private static final String PAR_SIZE = "size";
 	private static final String PAR_NUMHIDDEN = "numhidden";
+	private static final String PAR_CYCLES_FOR_CONVERGENCE = "cyclesforconvergence";
+	private static final String PAR_CONVERGENCE_EPSILON = "convergenceepsilon";
 	private static long counterID = -1; // used to generate unique IDs 
 	protected Protocol[] protocol = null; //The protocols on this node.
 	
@@ -130,7 +132,6 @@ public class PegasosNode implements Node {
 	public String resourcepath;
 	private int num_nodes;
 	public int num_run;
-	public boolean converged = false;
 	public long num_features;
 	public DataSet train_set;
 	public DataSet test_set;
@@ -139,6 +140,17 @@ public class PegasosNode implements Node {
 	public int num_hidden_nodes;
 	public NeuralNetwork neural_network;
 	public String csv_filename;
+	public String weights_filename;
+	
+	// Variables to maintain loss
+	public double train_loss = -1;
+	public double test_loss = -1;
+	
+	// Variables to determine convergence
+	public boolean converged = false;
+	public int num_converged_cycles = 0;
+	public double convergence_epsilon;
+	public int cycles_for_convergence;
 	
 	// ================ constructor and initialization =================
 	// =================================================================
@@ -173,6 +185,8 @@ public class PegasosNode implements Node {
 		num_classes = Configuration.getInt(prefix + "." + PAR_NUMCLASSES, 1);
 		num_hidden_nodes = Configuration.getInt(prefix + "." + PAR_NUMHIDDEN, 1);
 		learning_rate = Configuration.getDouble(prefix + "." + PAR_LEARNING_RATE, 0.01);
+		cycles_for_convergence = Configuration.getInt(prefix + "." + PAR_CYCLES_FOR_CONVERGENCE, 10);
+		convergence_epsilon = Configuration.getDouble(prefix + "." + PAR_CONVERGENCE_EPSILON, 0.01);
 		
 		System.out.println("model file and train file are saved in: " + resourcepath);
 		CommonState.setNode(this);
@@ -246,6 +260,7 @@ public class PegasosNode implements Node {
 	    	// Create headers to store the results
 	    	System.out.println("Creating csv file to store the results.");
 	    	result.csv_filename = resourcepath + "/run" + result.num_run + "/vpnn_results_temp_" + Network.size() + ".csv";
+	    	result.weights_filename = resourcepath + "/run" + result.num_run + "/vpnn_weights_temp_" + Network.size() + ".csv";
 			System.out.println("Storing in " + result.csv_filename);
 			String opString = "Iter,Node,TrainLoss,TestLoss,TrainAccuracy,TestAccuracy,TrainAUC,TestAUC";
 			try {

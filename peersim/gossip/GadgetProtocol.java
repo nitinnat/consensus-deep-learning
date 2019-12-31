@@ -78,8 +78,6 @@ import org.nd4j.linalg.indexing.conditions.Conditions;
 
 
 public class GadgetProtocol implements CDProtocol {
-	private static final String PAR_LAMBDA = "lambda";
-	private static final String PAR_ITERATION = "iter";
 	public static boolean flag = false;
 	public static int t = 0;
 	public static boolean optimizationDone = false;	
@@ -166,9 +164,31 @@ public void nextCycle(Node node, int pid) {
 			if (Network.size() == 1) {
 				// Train NN for one epoch
 				try {
-					pn.neural_network.train(pn.train_features, pn.train_labels, 
-											pn.test_features, pn.test_labels, 
-											1, pn.csv_filename,(int)node.getID(), 1);
+					if(!pn.converged) {
+						
+						pn.neural_network.train(pn.train_features, pn.train_labels, 
+												pn.test_features, pn.test_labels, 
+												1, pn.csv_filename,(int)node.getID(), 1);
+						
+						// pn.train_loss represents the loss at the previous cycle
+						// pn.neural_network.train_loss is the train_loss obtained after this cycle.
+						double abs_change_in_train_loss = Math.abs(pn.neural_network.train_loss - pn.train_loss);
+						pn.train_loss = pn.neural_network.train_loss;
+						pn.test_loss = pn.neural_network.test_loss;
+						
+						if (abs_change_in_train_loss < pn.convergence_epsilon) {
+							pn.num_converged_cycles += 1;
+						}
+						else {
+							pn.num_converged_cycles = 0;
+						}
+						
+						if (pn.num_converged_cycles >= pn.cycles_for_convergence) {
+							pn.converged = true;
+							System.out.println("Algorithm has converged for node " + pn.getID() + 
+									" after " + pn.num_converged_cycles + " cycles. No further processing will be done.");
+						}
+					}
 					
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -179,52 +199,83 @@ public void nextCycle(Node node, int pid) {
 	
 			else {
 				
-				// Select neighbor
-				PegasosNode peer = (PegasosNode)selectNeighbor(node, pid);
 				
-				List<INDArray> pn_layer_outputs = pn.neural_network.feedforward(pn.train_features);
-				List<INDArray> peer_layer_outputs = peer.neural_network.feedforward(peer.train_features);
-				
-				// Exchange loss vectors
-				INDArray pn_output = pn_layer_outputs.get(pn_layer_outputs.size()-1);
-				INDArray peer_output = peer_layer_outputs.get(peer_layer_outputs.size()-1);
-				INDArray avg_output = pn_output.add(peer_output).mul(0.5);
-				
-
-				
-				pn_layer_outputs.set(pn_layer_outputs.size()-1, avg_output);
-				peer_layer_outputs.set(peer_layer_outputs.size()-1, avg_output);
-				
-				// Backprop on each node for all examples
-				for(int j=0; j<pn.train_features.size(0);j++) {
-					int [] rows = new int[] {j};
-					INDArray cur_training_labels = pn.train_labels.getRows(rows);
+				// check if node has converged
+				if(!pn.converged) {
 					
-					// Node pn
-	    			INDArray pn_cur_training_data = pn.train_features.getRows(rows);
-		    		INDArray pn_cur_first = pn_layer_outputs.get(0).getRows(rows); 
-	    			INDArray pn_cur_second = pn_layer_outputs.get(1).getRows(rows);
-	    			List<INDArray> pn_cur_layer_outputs = new ArrayList<INDArray>();
-	    			pn_cur_layer_outputs.add(pn_cur_first);
-	    			pn_cur_layer_outputs.add(pn_cur_second);
-		    		pn.neural_network.backpropagate(pn_cur_layer_outputs, pn_cur_training_data, cur_training_labels);
-		    		
-		    		
-		    		// Node peer
-	    			INDArray peer_cur_training_data = peer.train_features.getRows(rows);
-		    		INDArray peer_cur_first = peer_layer_outputs.get(0).getRows(rows); 
-	    			INDArray peer_cur_second = peer_layer_outputs.get(1).getRows(rows);
-	    			List<INDArray> peer_cur_layer_outputs = new ArrayList<INDArray>();
-	    			peer_cur_layer_outputs.add(peer_cur_first);
-	    			peer_cur_layer_outputs.add(peer_cur_second);
-		    		peer.neural_network.backpropagate(peer_cur_layer_outputs, peer_cur_training_data, cur_training_labels);
-		    		
-		    		
-	    		}
-			
+				
+					// Select neighbor
+					PegasosNode peer = (PegasosNode)selectNeighbor(node, pid);
+					
+					List<INDArray> pn_layer_outputs = pn.neural_network.feedforward(pn.train_features);
+					List<INDArray> peer_layer_outputs = peer.neural_network.feedforward(peer.train_features);
+					
+					// Exchange loss vectors
+					INDArray pn_output = pn_layer_outputs.get(pn_layer_outputs.size()-1);
+					INDArray peer_output = peer_layer_outputs.get(peer_layer_outputs.size()-1);
+					INDArray avg_output = pn_output.add(peer_output).mul(0.5);
+					
+					pn_layer_outputs.set(pn_layer_outputs.size()-1, avg_output);
+					peer_layer_outputs.set(peer_layer_outputs.size()-1, avg_output);
+					
+					// Backprop on each node for all examples
+					for(int j=0; j<pn.train_features.size(0);j++) {
+						int [] rows = new int[] {j};
+						INDArray cur_training_labels = pn.train_labels.getRows(rows);
+						
+						// Node pn
+		    			INDArray pn_cur_training_data = pn.train_features.getRows(rows);
+			    		INDArray pn_cur_first = pn_layer_outputs.get(0).getRows(rows); 
+		    			INDArray pn_cur_second = pn_layer_outputs.get(1).getRows(rows);
+		    			List<INDArray> pn_cur_layer_outputs = new ArrayList<INDArray>();
+		    			pn_cur_layer_outputs.add(pn_cur_first);
+		    			pn_cur_layer_outputs.add(pn_cur_second);
+			    		pn.neural_network.backpropagate(pn_cur_layer_outputs, pn_cur_training_data, cur_training_labels);
+			    		
+			    		
+			    		// Node peer
+			    		// Backprop on peer only if it has not converged
+			    		if (!peer.converged) {
+			    			INDArray peer_cur_training_data = peer.train_features.getRows(rows);
+				    		INDArray peer_cur_first = peer_layer_outputs.get(0).getRows(rows); 
+			    			INDArray peer_cur_second = peer_layer_outputs.get(1).getRows(rows);
+			    			List<INDArray> peer_cur_layer_outputs = new ArrayList<INDArray>();
+			    			peer_cur_layer_outputs.add(peer_cur_first);
+			    			peer_cur_layer_outputs.add(peer_cur_second);
+				    		peer.neural_network.backpropagate(peer_cur_layer_outputs, peer_cur_training_data, cur_training_labels);
+			    		}
+			    		
+		    		}
+					
+					// Determine algorithm convergence for node pn
+					List<INDArray> train_outputs = pn.neural_network.feedforward(pn.train_features);
+		        	INDArray train_preds = train_outputs.get(train_outputs.size()-1);
+		        	List<Double> train_stats = NeuralNetwork.compute_stats(pn.train_labels, train_preds);
+		        	double pn_train_loss = train_stats.get(0);
+		        	double pn_abs_change_in_train_loss = Math.abs(pn_train_loss - pn.train_loss); 
+		        	
+		        	if (pn_abs_change_in_train_loss < pn.convergence_epsilon) {
+						pn.num_converged_cycles += 1;
+					}
+		        	else {
+						pn.num_converged_cycles = 0;
+					}
+		        	if (pn.num_converged_cycles >= pn.cycles_for_convergence) {
+						pn.converged = true;
+						System.out.println("Algorithm has converged for node " + pn.getID() + 
+								" after " + pn.num_converged_cycles + " cycles. No further processing will be done.");
+					}
+					
+		     
+					
+					
+				}
 				// After all the nodes have been processed in one cycle, we compute losses and accuracies
 				if(pn.getID() == Network.size()-1) {
+					
+					
 					String csv_filename = resourcepath + "/run" + pn.num_run + "/vpnn_results_temp_" + Network.size() + ".csv";
+					String weights_filename = resourcepath + "/run" + pn.num_run + "/vpnn_weights_temp_" + Network.size() + ".csv";
 					BufferedWriter bw;
 					try {
 						bw = new BufferedWriter(new FileWriter(csv_filename, true));
@@ -245,7 +296,6 @@ public void nextCycle(Node node, int pid) {
 				        	double test_acc = test_stats.get(1);
 				        	
 				        	// Train and Test AUC
-				        	
 				        	double train_auc = NeuralNetwork.compute_auc(temp_node.train_labels, temp_train_pred_outputs);
 				        	double test_auc = NeuralNetwork.compute_auc(temp_node.test_labels, temp_test_pred_outputs);
 				        	
@@ -258,8 +308,9 @@ public void nextCycle(Node node, int pid) {
 						bw.close();
 					}
 					catch (IOException e) {e.printStackTrace();}
-					}	
-			}
+					
+			}	
+		}
 	}
 
 	/**

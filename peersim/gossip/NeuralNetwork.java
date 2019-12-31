@@ -13,6 +13,7 @@ import java.util.TreeMap;
 
 
 import org.deeplearning4j.eval.Evaluation;
+import org.apache.commons.math3.optim.nonlinear.vector.Weight;
 import org.datavec.api.records.reader.RecordReader;
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader;
 import org.datavec.api.split.FileSplit;
@@ -70,6 +71,10 @@ public class NeuralNetwork {
 	NeuronLayer layer1;
 	NeuronLayer layer2;
 	double learning_rate;
+	double train_loss;
+	double test_loss;
+	double train_auc;
+	double test_auc;
 	
 	public static DataSet readCSVDataset(
 	        String csvFileClasspath, int batchSize, int labelIndex, int numClasses)
@@ -84,6 +89,10 @@ public class NeuralNetwork {
 		layer1 = layerA;
 		layer2 = layerB;
 		learning_rate = lr;
+		train_loss = -1;
+		test_loss = -1;
+		train_auc = -1;
+		test_auc = -1;
 	}
 	
 	public INDArray _sigmoid(INDArray x) {	
@@ -179,6 +188,32 @@ public class NeuralNetwork {
         	
     }
     
+    public String weights_to_string() {
+    	String result = "";
+    	int numRows =layer1.synaptic_weights.rows();
+		int numCols = layer1.synaptic_weights.columns();
+		
+    	for(int i=0;i<numRows;i++) {
+			for(int j=0;j<numCols;j++) {
+				result = result + layer1.synaptic_weights.getDouble(i,j) + ",";
+			}
+    	
+    	}
+    	
+    	numRows =layer2.synaptic_weights.rows();
+		numCols = layer2.synaptic_weights.columns();
+		
+    	for(int i=0;i<numRows;i++) {
+			for(int j=0;j<numCols;j++) {
+				result = result + layer2.synaptic_weights.getDouble(i,j) + ",";
+			}
+    	
+    	}
+    	
+    	// Removing trailing comma
+    	result = result.substring(0, result.length() - 2);
+    	return result;
+    }
     
     public static void scaleMinMax(double min, double max, INDArray toScale) {
         //X_std = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0)) X_scaled = X_std * (max - min) + min
@@ -206,7 +241,6 @@ public class NeuralNetwork {
     public void train(INDArray training_set_inputs, INDArray training_set_outputs,
     		INDArray testing_set_inputs, INDArray testing_set_outputs,
     		int number_of_training_iterations, String csv_filename, int node, int mode) throws IOException {
-    	INDArray output_from_layer_1, output_from_layer_2;
     	BufferedWriter bw = new BufferedWriter(new FileWriter(csv_filename, true));
 
 	    	for (int i=0; i<number_of_training_iterations;i++) {
@@ -240,6 +274,13 @@ public class NeuralNetwork {
 	    	    double train_auc = compute_auc(training_set_outputs, train_pred);
 	    		double test_auc = compute_auc(testing_set_outputs, test_pred);
 	    	    
+	    		// Update class members
+	    		this.train_loss = train_loss;
+	    		this.test_loss = test_loss;
+	    		this.train_auc = train_auc;
+	    		this.test_auc = test_auc;
+	    		
+	    		// Write into output files
 	    		int iter;
 	    		if(mode == 0) {
 		    		iter = i;
@@ -251,9 +292,11 @@ public class NeuralNetwork {
 	    		System.out.println("iter" + iter + " train_loss: " + train_loss +" test_loss: "+ test_loss +
 	    				" train_acc: " + train_acc + " test_acc: " + test_acc);
 	    		System.out.println("Train AUC: " + train_auc + " Test AUC: " + test_auc);
+	    		
 				// Write to file
 				bw.write(iter + "," + node + ","+ train_loss+ ","+test_loss+','+train_acc+","+test_acc+","+train_auc+","+test_auc);
 				bw.write("\n");
+				
 	    	}
 	    	bw.close();
     }
@@ -361,7 +404,7 @@ public class NeuralNetwork {
 	    
 	    
 	    System.out.println("Creating csv file to store the results.");
-    	String csv_filename = "C:\\Users\\Nitin\\Documents\\consensus-dl\\data\\madelon\\run1\\vpnn_results_temp_1.csv";
+    	String csv_filename = "C:\\Users\\Nitin\\Documents\\consensus-dl\\data\\something.csv";
 		System.out.println("Storing in " + csv_filename);
 		
 		
@@ -372,7 +415,7 @@ public class NeuralNetwork {
 		bw.write(opString);
 		bw.write("\n");
         neural_network.train(training_set_inputs, training_set_outputs, testing_set_inputs, testing_set_outputs, 200, csv_filename, 0, 0);
-		
+		bw.close();
         
     }
 }
