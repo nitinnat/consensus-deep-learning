@@ -20,6 +20,11 @@
  * this program; if not, write to the Free Software Foundation, Inc., 51
  * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+// todo: replace run directory names with meaningful ones
+// todo: copy the config file used inside the run directory
+// todo: clean up config files
+// todo: separate the writing into files from the training method
+
 package peersim.gossip;
 
 import java.io.BufferedReader;
@@ -28,8 +33,12 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.LineNumberReader;
+import java.lang.ProcessBuilder.Redirect;
 import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -145,6 +154,8 @@ public class PegasosNode implements Node {
 	// Variables to maintain loss
 	public double train_loss = -1;
 	public double test_loss = -1;
+	public double train_auc = -1;
+	
 	
 	// Variables to determine convergence
 	public boolean converged = false;
@@ -170,6 +181,34 @@ public class PegasosNode implements Node {
 	        DataSetIterator iterator = new RecordReaderDataSetIterator(rr, batchSize, labelIndex, numClasses);
 	        return iterator.next();
 	    }
+	
+	private static void processData(String dataset, int num_splits, int run){
+		if (num_splits > 1)
+		{
+			System.out.println(Files.exists(Paths.get("C:\\Users\\Nitin\\Anaconda3\\python.exe")));
+			// String command = "C:\\Users\\Nitin\\Anaconda3\\python.exe" +" scripts\\DataProcessor.py" + " -d " + dataset + " -n " + new Integer(num_splits).toString() + " -r " + new Integer(run).toString();
+			ProcessBuilder pb = new ProcessBuilder("C:\\Users\\Nitin\\Anaconda3\\python.exe",
+					"scripts/DataProcessor.py", 
+					"-d", dataset, 
+					"-n", new Integer(num_splits).toString(),
+					"-r", new Integer(run).toString()
+					);
+			pb.redirectOutput(Redirect.INHERIT);
+			pb.redirectError(Redirect.INHERIT);
+			try {
+				Process p = pb.start();
+				p.waitFor();
+				BufferedReader in = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+				System.out.println(in.read());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}	
+	}
 	
 	public PegasosNode(String prefix) {
 		System.out.println(prefix);
@@ -200,7 +239,7 @@ public class PegasosNode implements Node {
 		}
 		num_nodes = Configuration.getInt(prefix + "." + PAR_SIZE, 20);
 		num_run = Configuration.getInt(prefix + "." + "run", 1);
-		System.out.println("Number of nodes is ####### "+num_nodes);
+
 	}
 	
 	/**
@@ -233,11 +272,13 @@ public class PegasosNode implements Node {
 		String[] temp_data = resourcepath.split("/");
 		String base_dataset_name = temp_data[temp_data.length - 1];
         
+		
 		// Get train file and test file paths
         String localTrainFilepath = "";
         String localTestFilepath = "";
         
         if (Network.size() == 1) {
+        	
         	localTrainFilepath = resourcepath + "/" + base_dataset_name + "_train_binary.csv";
         	localTestFilepath = resourcepath + "/" + base_dataset_name + "_test_binary.csv";
         }
@@ -257,12 +298,16 @@ public class PegasosNode implements Node {
 	    
 	    // If this is the first node in the cycle, then create the results file here.
 	    if (result.getID() == 0) {
+	    	 //Process data if network.size > 1
+	    	//if (Network.size() != 1) {
+	    	//	processData(base_dataset_name, Network.size(), num_run);
+	    	//}
 	    	// Create headers to store the results
 	    	System.out.println("Creating csv file to store the results.");
 	    	result.csv_filename = resourcepath + "/run" + result.num_run + "/vpnn_results_temp_" + Network.size() + ".csv";
 	    	result.weights_filename = resourcepath + "/run" + result.num_run + "/vpnn_weights_temp_" + Network.size() + ".csv";
 			System.out.println("Storing in " + result.csv_filename);
-			String opString = "Iter,Node,TrainLoss,TestLoss,TrainAccuracy,TestAccuracy,TrainAUC,TestAUC";
+			String opString = "Iter,Node,TrainLoss,TestLoss,TrainAccuracy,TestAccuracy,TrainAUC,TestAUC,Converged,NumConvergedCycles";
 			try {
 				System.out.println("Writing header to " + result.csv_filename);
 				BufferedWriter bw = new BufferedWriter(new FileWriter(result.csv_filename));
@@ -301,7 +346,7 @@ public class PegasosNode implements Node {
 		    System.out.println(result.test_features.shapeInfoToString());
 	        int num_features = (int)result.train_features.size(1);
 	        int num_outputs = 1;
-		        
+	        
 	        // Create this Node's Neural Network instance
 	        NeuronLayer layer1 = new NeuronLayer(num_features, num_hidden_nodes);
 	        NeuronLayer layer2 = new NeuronLayer(num_hidden_nodes, num_outputs);

@@ -137,6 +137,127 @@ public class GadgetProtocol implements CDProtocol {
 		return gp;
 	}
 	
+	public void compute_distributed_average_stats(String csv_filename, int iter) {
+		// Computes losses and accuracies by averaging values obtained across all nodes
+		BufferedWriter bw;
+		try {
+			bw = new BufferedWriter(new FileWriter(csv_filename, true));
+			for(int i=0; i < Network.size(); i++) {
+	        	PegasosNode temp_node = (PegasosNode)Network.get(i);
+	        	// Train Loss and Accuracy
+	        	List<INDArray> temp_layer_outputs_train = temp_node.neural_network.feedforward(temp_node.train_features);
+	        	INDArray temp_train_pred_outputs = temp_layer_outputs_train.get(temp_layer_outputs_train.size()-1);
+	        	List<Double> train_stats = NeuralNetwork.compute_stats(temp_node.train_labels, temp_train_pred_outputs);
+	        	double train_loss = train_stats.get(0);
+	        	double train_acc = train_stats.get(1);
+	        
+	        	// Test Loss and Accuracy
+	        	List<INDArray> temp_layer_outputs_test = temp_node.neural_network.feedforward(temp_node.test_features);
+	        	INDArray temp_test_pred_outputs = temp_layer_outputs_test.get(temp_layer_outputs_test.size()-1);
+	        	List<Double> test_stats = NeuralNetwork.compute_stats(temp_node.test_labels, temp_test_pred_outputs);
+	        	double test_loss = test_stats.get(0);
+	        	double test_acc = test_stats.get(1);
+	        	
+	        	// Train and Test AUC
+	        	double train_auc = NeuralNetwork.compute_auc(temp_node.train_labels, temp_train_pred_outputs);
+	        	double test_auc = NeuralNetwork.compute_auc(temp_node.test_labels, temp_test_pred_outputs);
+	        	temp_node.train_auc = train_auc;
+	        	
+	        	//System.out.println("Iter: "+iter+" Node: "+ i + " TrainAcc: "+train_acc +" TestAcc: " + test_acc);
+	        	//System.out.println("TrainLoss: "+ train_loss + " TestLoss: "+ test_loss);
+	        	System.out.println("Iter: "+iter+" Node: "+ i + " TrainAUC: "+ train_auc + " TestAUC: "+ test_auc + " Converged: " + 
+	        			String.valueOf(temp_node.converged) + " Num converged cycles: " + temp_node.num_converged_cycles);
+	        	
+	        	bw.write(iter + "," + i + ","+ train_loss+ ","+test_loss+','+train_acc+","+test_acc+','+train_auc+","+test_auc+
+	        			", " + String.valueOf(temp_node.converged)+ ", " + temp_node.num_converged_cycles);
+				bw.write("\n");
+			}
+			bw.close();
+		}
+		catch (IOException e) {e.printStackTrace();}
+		
+	}
+	
+	public void compute_distributed_voted_stats(String csv_filename, int iter) {
+		// Computes losses and accuracies by taking voted predictions across nodes
+		BufferedWriter bw;
+		INDArray train_labels = null;
+		INDArray test_labels = null;
+		
+		try {
+			bw = new BufferedWriter(new FileWriter(csv_filename, true));
+			
+			// to accumulate all nodes' predictions
+			INDArray all_train_preds = null;
+			INDArray all_test_preds = null;
+			
+			for(int i=0; i < Network.size(); i++) {
+	        	PegasosNode temp_node = (PegasosNode)Network.get(i);
+	        	// Train Loss and Accuracy
+	        	List<INDArray> temp_layer_outputs_train = temp_node.neural_network.feedforward(temp_node.train_features);
+	        	INDArray temp_train_pred_outputs = temp_layer_outputs_train.get(temp_layer_outputs_train.size()-1);
+	        	List<Double> train_stats = NeuralNetwork.compute_stats(temp_node.train_labels, temp_train_pred_outputs);
+	        	
+	        	if (i ==0) {
+	        		train_labels = temp_node.train_labels;
+	        		test_labels = temp_node.test_labels;
+	        	}
+	        	
+	        	double train_loss = train_stats.get(0);
+	        	double train_acc = train_stats.get(1);
+	        	
+	        	if (all_train_preds == null) {
+	        		all_train_preds = temp_train_pred_outputs;
+	        	}
+	        	else {
+	        		all_train_preds = all_train_preds.add(temp_train_pred_outputs);
+	        	}
+	        		
+	        	
+	        	// Test Loss and Accuracy
+	        	List<INDArray> temp_layer_outputs_test = temp_node.neural_network.feedforward(temp_node.test_features);
+	        	INDArray temp_test_pred_outputs = temp_layer_outputs_test.get(temp_layer_outputs_test.size()-1);
+	        	List<Double> test_stats = NeuralNetwork.compute_stats(temp_node.test_labels, temp_test_pred_outputs);
+	        	double test_loss = test_stats.get(0);
+	        	double test_acc = test_stats.get(1);
+	        	
+	        	if (all_test_preds == null) {
+	        		all_test_preds = temp_test_pred_outputs;
+	        	}
+	        	else {
+	        		all_test_preds = all_test_preds.add(temp_test_pred_outputs);
+	        	}
+	        	
+
+	        	// Train and Test AUC
+	        	double train_auc = NeuralNetwork.compute_auc(temp_node.train_labels, temp_train_pred_outputs);
+	        	double test_auc = NeuralNetwork.compute_auc(temp_node.test_labels, temp_test_pred_outputs);
+	        	temp_node.train_auc = train_auc;
+	        	
+	        	//System.out.println("Iter: "+iter+" Node: "+ i + " TrainAcc: "+train_acc +" TestAcc: " + test_acc);
+	        	//System.out.println("TrainLoss: "+ train_loss + " TestLoss: "+ test_loss);
+	        	System.out.println("Iter: "+iter+" Node: "+ i + " TrainAUC: "+ train_auc + " TestAUC: "+ test_auc + " Converged: " + 
+	        			String.valueOf(temp_node.converged) + " Num converged cycles: " + temp_node.num_converged_cycles);
+	        	
+	        	bw.write(iter + "," + i + ","+ train_loss+ ","+test_loss+','+train_acc+","+test_acc+','+train_auc+","+test_auc+
+	        			", " + String.valueOf(temp_node.converged)+ ", " + temp_node.num_converged_cycles);
+				bw.write("\n");
+			}
+			
+			// Compute average predictions and then the overall AUC using those predictions
+			all_train_preds = all_train_preds.div(Network.size());
+			all_test_preds = all_test_preds.div(Network.size());
+			double overall_train_auc = NeuralNetwork.compute_auc(train_labels, all_train_preds);
+        	double overall_test_auc = NeuralNetwork.compute_auc(test_labels, all_test_preds);
+        	bw.write(iter + "," + "Overall" + ","+ -1 + ","+ -1 +','+ -1 +","+ -1 +','+overall_train_auc+","+overall_test_auc+
+        			", " + String.valueOf(false)+ ", " + 0);
+			bw.write("\n");
+        	System.out.println("Iter: " + iter + "Overall Train AUC: " + overall_train_auc + " Test AUC: " + overall_test_auc);
+			bw.close();
+		}
+		catch (IOException e) {e.printStackTrace();}
+		
+	}
 	
 	protected List<Node> getPeers(Node node) {
 		Linkable linkable = (Linkable) node.getProtocol(lid);
@@ -164,19 +285,37 @@ public void nextCycle(Node node, int pid) {
 			if (Network.size() == 1) {
 				// Train NN for one epoch
 				try {
-					if(!pn.converged) {
-						
+					
 						pn.neural_network.train(pn.train_features, pn.train_labels, 
 												pn.test_features, pn.test_labels, 
-												1, pn.csv_filename,(int)node.getID(), 1);
+												1, pn.csv_filename,(int)node.getID(), 1, pn.converged);
 						
 						// pn.train_loss represents the loss at the previous cycle
 						// pn.neural_network.train_loss is the train_loss obtained after this cycle.
-						double abs_change_in_train_loss = Math.abs(pn.neural_network.train_loss - pn.train_loss);
-						pn.train_loss = pn.neural_network.train_loss;
-						pn.test_loss = pn.neural_network.test_loss;
+//						double abs_change_in_train_loss = Math.abs(pn.neural_network.train_loss - pn.train_loss);
+//						pn.train_loss = pn.neural_network.train_loss;
+//						pn.test_loss = pn.neural_network.test_loss;
+//						
+//						if (abs_change_in_train_loss < pn.convergence_epsilon) {
+//							pn.num_converged_cycles += 1;
+//						}
+//						else {
+//							pn.num_converged_cycles = 0;
+//						}
+//						
+//						if (pn.num_converged_cycles >= pn.cycles_for_convergence) {
+//							pn.converged = true;
+//							System.out.println("Algorithm has converged for node " + pn.getID() + 
+//									" after " + pn.num_converged_cycles + " cycles. No further processing will be done.");
+//						}
+						if(!pn.converged) {
+							
+						System.out.println("Old Train AUC: " + pn.train_auc + " New Train AUC: " + pn.neural_network.train_auc);
+						System.out.println("Converged: " + String.valueOf(pn.converged) + " Num converged cycles: " + pn.num_converged_cycles);
+						double abs_change_in_train_auc = Math.abs(pn.neural_network.train_auc - pn.train_auc);
+						pn.train_auc = pn.neural_network.train_auc;
 						
-						if (abs_change_in_train_loss < pn.convergence_epsilon) {
+						if (abs_change_in_train_auc < pn.convergence_epsilon) {
 							pn.num_converged_cycles += 1;
 						}
 						else {
@@ -234,16 +373,15 @@ public void nextCycle(Node node, int pid) {
 			    		
 			    		
 			    		// Node peer
-			    		// Backprop on peer only if it has not converged
-			    		if (!peer.converged) {
-			    			INDArray peer_cur_training_data = peer.train_features.getRows(rows);
-				    		INDArray peer_cur_first = peer_layer_outputs.get(0).getRows(rows); 
-			    			INDArray peer_cur_second = peer_layer_outputs.get(1).getRows(rows);
-			    			List<INDArray> peer_cur_layer_outputs = new ArrayList<INDArray>();
-			    			peer_cur_layer_outputs.add(peer_cur_first);
-			    			peer_cur_layer_outputs.add(peer_cur_second);
-				    		peer.neural_network.backpropagate(peer_cur_layer_outputs, peer_cur_training_data, cur_training_labels);
-			    		}
+			    		// Can backprop on peer even if it is has converged and stopped
+		    			INDArray peer_cur_training_data = peer.train_features.getRows(rows);
+			    		INDArray peer_cur_first = peer_layer_outputs.get(0).getRows(rows); 
+		    			INDArray peer_cur_second = peer_layer_outputs.get(1).getRows(rows);
+		    			List<INDArray> peer_cur_layer_outputs = new ArrayList<INDArray>();
+		    			peer_cur_layer_outputs.add(peer_cur_first);
+		    			peer_cur_layer_outputs.add(peer_cur_second);
+			    		peer.neural_network.backpropagate(peer_cur_layer_outputs, peer_cur_training_data, cur_training_labels);
+			    	
 			    		
 		    		}
 					
@@ -251,10 +389,26 @@ public void nextCycle(Node node, int pid) {
 					List<INDArray> train_outputs = pn.neural_network.feedforward(pn.train_features);
 		        	INDArray train_preds = train_outputs.get(train_outputs.size()-1);
 		        	List<Double> train_stats = NeuralNetwork.compute_stats(pn.train_labels, train_preds);
-		        	double pn_train_loss = train_stats.get(0);
-		        	double pn_abs_change_in_train_loss = Math.abs(pn_train_loss - pn.train_loss); 
+		        	//double pn_train_loss = train_stats.get(0);
+		        		
+					double pn_train_auc = NeuralNetwork.compute_auc(pn.train_labels, train_preds);
+					System.out.println("Old Train AUC: " + pn.train_auc +" New Train AUC: " + pn_train_auc);
 		        	
-		        	if (pn_abs_change_in_train_loss < pn.convergence_epsilon) {
+					//double pn_abs_change_in_train_loss = Math.abs(pn_train_loss - pn.train_loss); 
+		        	double pn_ab_change_in_auc = Math.abs(pn_train_auc - pn.train_auc); 
+//		        	if (pn_abs_change_in_train_loss < pn.convergence_epsilon) {
+//						pn.num_converged_cycles += 1;
+//					}
+//		        	else {
+//						pn.num_converged_cycles = 0;
+//					}
+//		        	if (pn.num_converged_cycles >= pn.cycles_for_convergence) {
+//						pn.converged = true;
+//						System.out.println("Algorithm has converged for node " + pn.getID() + 
+//								" after " + pn.num_converged_cycles + " cycles. No further processing will be done.");
+//					}
+//					
+		        	if (pn_ab_change_in_auc < pn.convergence_epsilon) {
 						pn.num_converged_cycles += 1;
 					}
 		        	else {
@@ -265,49 +419,19 @@ public void nextCycle(Node node, int pid) {
 						System.out.println("Algorithm has converged for node " + pn.getID() + 
 								" after " + pn.num_converged_cycles + " cycles. No further processing will be done.");
 					}
-					
-		     
+		        	// Update train loss
+		        	pn.train_auc = pn_train_auc;
 					
 					
 				}
+				
+				
 				// After all the nodes have been processed in one cycle, we compute losses and accuracies
 				if(pn.getID() == Network.size()-1) {
 					
 					
 					String csv_filename = resourcepath + "/run" + pn.num_run + "/vpnn_results_temp_" + Network.size() + ".csv";
-					String weights_filename = resourcepath + "/run" + pn.num_run + "/vpnn_weights_temp_" + Network.size() + ".csv";
-					BufferedWriter bw;
-					try {
-						bw = new BufferedWriter(new FileWriter(csv_filename, true));
-						for(int i=0; i < Network.size(); i++) {
-				        	PegasosNode temp_node = (PegasosNode)Network.get(i);
-				        	// Train Loss and Accuracy
-				        	List<INDArray> temp_layer_outputs_train = temp_node.neural_network.feedforward(temp_node.train_features);
-				        	INDArray temp_train_pred_outputs = temp_layer_outputs_train.get(temp_layer_outputs_train.size()-1);
-				        	List<Double> train_stats = NeuralNetwork.compute_stats(temp_node.train_labels, temp_train_pred_outputs);
-				        	double train_loss = train_stats.get(0);
-				        	double train_acc = train_stats.get(1);
-				        
-				        	// Test Loss and Accuracy
-				        	List<INDArray> temp_layer_outputs_test = temp_node.neural_network.feedforward(temp_node.test_features);
-				        	INDArray temp_test_pred_outputs = temp_layer_outputs_test.get(temp_layer_outputs_test.size()-1);
-				        	List<Double> test_stats = NeuralNetwork.compute_stats(temp_node.test_labels, temp_test_pred_outputs);
-				        	double test_loss = test_stats.get(0);
-				        	double test_acc = test_stats.get(1);
-				        	
-				        	// Train and Test AUC
-				        	double train_auc = NeuralNetwork.compute_auc(temp_node.train_labels, temp_train_pred_outputs);
-				        	double test_auc = NeuralNetwork.compute_auc(temp_node.test_labels, temp_test_pred_outputs);
-				        	
-				        	System.out.println("Iter: "+iter+" Node: "+ i + " TrainAcc: "+train_acc +" TestAcc: " + test_acc);
-				        	System.out.println("TrainLoss: "+ train_loss + " TestLoss: "+ test_loss);
-				        	System.out.println("TrainAUC: "+ train_auc + " TestAUC: "+ test_auc);
-				        	bw.write(iter + "," + i + ","+ train_loss+ ","+test_loss+','+train_acc+","+test_acc+','+train_auc+","+test_auc);
-							bw.write("\n");
-						}
-						bw.close();
-					}
-					catch (IOException e) {e.printStackTrace();}
+					compute_distributed_voted_stats(csv_filename, iter);
 					
 			}	
 		}

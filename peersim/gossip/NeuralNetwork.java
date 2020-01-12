@@ -175,7 +175,7 @@ public class NeuralNetwork {
     public static double accuracy(INDArray y_true, INDArray y_pred) {
     	final Evaluation evaluation = new Evaluation(0.5);
     	evaluation.eval(y_true, y_pred);
-    	System.out.println(evaluation.stats());
+    	//System.out.println(evaluation.stats());
     	return evaluation.accuracy();
         
     }
@@ -240,10 +240,13 @@ public class NeuralNetwork {
     
     public void train(INDArray training_set_inputs, INDArray training_set_outputs,
     		INDArray testing_set_inputs, INDArray testing_set_outputs,
-    		int number_of_training_iterations, String csv_filename, int node, int mode) throws IOException {
+    		int number_of_training_iterations, String csv_filename, int node, int mode, boolean converged) throws IOException {
     	BufferedWriter bw = new BufferedWriter(new FileWriter(csv_filename, true));
-
+    		
+    		
 	    	for (int i=0; i<number_of_training_iterations;i++) {
+	    		
+	    		if(!converged) {
 	    		for(int j=0; j<training_set_inputs.size(0);j++) {
 	    			// Feedforward
 	    			int [] rows = new int[] {j};
@@ -255,7 +258,7 @@ public class NeuralNetwork {
 		    		backpropagate(layer_outputs, cur_training_data, cur_training_labels);
 	    		
 	    			}
-		    		
+	    		}
 	    		// compute train loss
 	    		List<INDArray> train_layer_outputs = feedforward(training_set_inputs);
 	    	    List<Double> train_res = compute_stats(training_set_outputs, train_layer_outputs.get(train_layer_outputs.size()-1));
@@ -294,7 +297,8 @@ public class NeuralNetwork {
 	    		System.out.println("Train AUC: " + train_auc + " Test AUC: " + test_auc);
 	    		
 				// Write to file
-				bw.write(iter + "," + node + ","+ train_loss+ ","+test_loss+','+train_acc+","+test_acc+","+train_auc+","+test_auc);
+				bw.write(iter + "," + node + ","+ train_loss+ ","+test_loss+','+train_acc+","+test_acc+","+train_auc+","+test_auc
+						+","+converged+","+0);
 				bw.write("\n");
 				
 	    	}
@@ -414,7 +418,7 @@ public class NeuralNetwork {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(csv_filename));
 		bw.write(opString);
 		bw.write("\n");
-        neural_network.train(training_set_inputs, training_set_outputs, testing_set_inputs, testing_set_outputs, 200, csv_filename, 0, 0);
+        //neural_network.train(training_set_inputs, training_set_outputs, testing_set_inputs, testing_set_outputs, 200, csv_filename, 0, 0);
 		bw.close();
         
     }

@@ -110,7 +110,7 @@ def unpickle(file):
 
 
 
-def process_sonar(num_splits):
+def process_sonar(num_splits, run):
 
 	dataset_dir = os.path.join(DATA_DIR, "sonar")
 	trainFilename = "sonar_train.csv"
@@ -143,62 +143,301 @@ def process_sonar(num_splits):
 	print("Sonar data available in {}".format(dataset_dir))
 
 
+def process_arcene(num_splits, run):
 
-def process_madelon(num_splits):
 
-	from sklearn.model_selection import train_test_split
-	from sklearn.preprocessing import MinMaxScaler
+	dataset_dir = os.path.join(DATA_DIR, "arcene")
+
+	trainDataFilename = "arcene_train.csv"
+	validDataFilename = "arcene_valid.csv"
+	arcene_train_data = pd.read_csv(os.path.join(dataset_dir, trainDataFilename), header=None)
+	arcene_valid_data = pd.read_csv(os.path.join(dataset_dir, validDataFilename), header=None)
+	
+	X_arcene_train, y_arcene_train = arcene_train_data.iloc[:, 1:], arcene_train_data.iloc[:, 0]
+	X_arcene_train = np.array(X_arcene_train)
+	y_arcene_train = np.array(y_arcene_train) 
+	y_arcene_train[y_arcene_train == -1] = 0
+	y_arcene_train[y_arcene_train == 1] = 1
+
+	X_arcene_valid, y_arcene_valid = arcene_valid_data.iloc[:, 1:], arcene_valid_data.iloc[:, 0]
+	X_arcene_valid = np.array(X_arcene_valid)
+	y_arcene_valid = np.array(y_arcene_valid) 
+	y_arcene_valid[y_arcene_valid == -1] = 0
+	y_arcene_valid[y_arcene_valid == 1] = 1
+
+
+	# Normalize data
+	scaler = MinMaxScaler().fit(X_arcene_train)
+	X_arcene_train = scaler.transform(X_arcene_train)
+	X_arcene_valid = scaler.transform(X_arcene_valid)
+
+	# Hstack labels
+	all_train = np.hstack((y_arcene_train.reshape(-1,1), X_arcene_train))
+	all_test = np.hstack((y_arcene_valid.reshape(-1,1), X_arcene_valid))
+
+	
+	pd.DataFrame(all_train).to_csv(os.path.join(dataset_dir, "arcene_train_binary.csv"), index=None, header=None)
+	pd.DataFrame(all_test).to_csv(os.path.join(dataset_dir, "arcene_test_binary.csv"), index=None, header=None)
+
+	
+	trainFilename = "arcene_train.csv"
+	testFilename = "arcene_test.csv"
+
+	# Process training set
+	splitDfs = split_padded(X_arcene_train, y_arcene_train, num_splits)
+	print([a.shape for a in splitDfs])
+	saveSplitFiles(dataset_dir, trainFilename, splitDfs)
+	print(Counter(y_arcene_train))
+
+
+	# Process valid set
+	splitDfs = split_padded(X_arcene_valid, y_arcene_valid, num_splits)
+	print([a.shape for a in splitDfs])
+	saveSplitFiles(dataset_dir, testFilename, splitDfs)
+	print(Counter(y_arcene_valid))
+
+	print("Arcene data available in {}".format(dataset_dir))
+
+
+
+def process_dexter(num_splits, run):
+
+
+	dataset_dir = os.path.join(DATA_DIR, "dexter")
+
+	trainDataFilename = "dexter_train.csv"
+	validDataFilename = "dexter_valid.csv"
+	dexter_train_data = pd.read_csv(os.path.join(dataset_dir, trainDataFilename), header=None)
+	dexter_valid_data = pd.read_csv(os.path.join(dataset_dir, validDataFilename), header=None)
+	
+	X_dexter_train, y_dexter_train = dexter_train_data.iloc[:, 1:], dexter_train_data.iloc[:, 0]
+	X_dexter_train = np.array(X_dexter_train)
+	y_dexter_train = np.array(y_dexter_train) 
+	y_dexter_train[y_dexter_train == -1] = 0
+	y_dexter_train[y_dexter_train == 1] = 1
+
+	X_dexter_valid, y_dexter_valid = dexter_valid_data.iloc[:, 1:], dexter_valid_data.iloc[:, 0]
+	X_dexter_valid = np.array(X_dexter_valid)
+	y_dexter_valid = np.array(y_dexter_valid) 
+	y_dexter_valid[y_dexter_valid == -1] = 0
+	y_dexter_valid[y_dexter_valid == 1] = 1
+
+
+	# Normalize data
+	scaler = MinMaxScaler().fit(X_dexter_train)
+	X_dexter_train = scaler.transform(X_dexter_train)
+	X_dexter_valid = scaler.transform(X_dexter_valid)
+
+	# Hstack labels
+	all_train = np.hstack((y_dexter_train.reshape(-1,1), X_dexter_train))
+	all_test = np.hstack((y_dexter_valid.reshape(-1,1), X_dexter_valid))
+
+	
+	pd.DataFrame(all_train).to_csv(os.path.join(dataset_dir, "dexter_train_binary.csv"), index=None, header=None)
+	pd.DataFrame(all_test).to_csv(os.path.join(dataset_dir, "dexter_test_binary.csv"), index=None, header=None)
+
+	
+	trainFilename = "dexter_train.csv"
+	testFilename = "dexter_test.csv"
+
+	# Process training set
+	splitDfs = split_padded(X_dexter_train, y_dexter_train, num_splits)
+	print([a.shape for a in splitDfs])
+	saveSplitFiles(dataset_dir, trainFilename, splitDfs)
+	print(Counter(y_dexter_train))
+
+
+	# Process valid set
+	splitDfs = split_padded(X_dexter_valid, y_dexter_valid, num_splits)
+	print([a.shape for a in splitDfs])
+	saveSplitFiles(dataset_dir, testFilename, splitDfs)
+	print(Counter(y_dexter_valid))
+
+	print("dexter data available in {}".format(dataset_dir))
+
+
+
+
+
+def process_dorothea(num_splits, run):
+
+
+	dataset_dir = os.path.join(DATA_DIR, "dorothea")
+
+	trainDataFilename = "dorothea_train.csv"
+	validDataFilename = "dorothea_valid.csv"
+	dorothea_train_data = pd.read_csv(os.path.join(dataset_dir, trainDataFilename), header=None)
+	dorothea_valid_data = pd.read_csv(os.path.join(dataset_dir, validDataFilename), header=None)
+	
+	X_dorothea_train, y_dorothea_train = dorothea_train_data.iloc[:, 1:], dorothea_train_data.iloc[:, 0]
+	X_dorothea_train = np.array(X_dorothea_train)
+	y_dorothea_train = np.array(y_dorothea_train) 
+	y_dorothea_train[y_dorothea_train == -1] = 0
+	y_dorothea_train[y_dorothea_train == 1] = 1
+
+	X_dorothea_valid, y_dorothea_valid = dorothea_valid_data.iloc[:, 1:], dorothea_valid_data.iloc[:, 0]
+	X_dorothea_valid = np.array(X_dorothea_valid)
+	y_dorothea_valid = np.array(y_dorothea_valid) 
+	y_dorothea_valid[y_dorothea_valid == -1] = 0
+	y_dorothea_valid[y_dorothea_valid == 1] = 1
+
+
+	# Normalize data
+	scaler = MinMaxScaler().fit(X_dorothea_train)
+	X_dorothea_train = scaler.transform(X_dorothea_train)
+	X_dorothea_valid = scaler.transform(X_dorothea_valid)
+
+	# Hstack labels
+	all_train = np.hstack((y_dorothea_train.reshape(-1,1), X_dorothea_train))
+	all_test = np.hstack((y_dorothea_valid.reshape(-1,1), X_dorothea_valid))
+
+	
+	pd.DataFrame(all_train).to_csv(os.path.join(dataset_dir, "dorothea_train_binary.csv"), index=None, header=None)
+	pd.DataFrame(all_test).to_csv(os.path.join(dataset_dir, "dorothea_test_binary.csv"), index=None, header=None)
+
+	
+	trainFilename = "dorothea_train.csv"
+	testFilename = "dorothea_test.csv"
+
+	# Process training set
+	splitDfs = split_padded(X_dorothea_train, y_dorothea_train, num_splits)
+	print([a.shape for a in splitDfs])
+	saveSplitFiles(dataset_dir, trainFilename, splitDfs)
+	print(Counter(y_dorothea_train))
+
+
+	# Process valid set
+	splitDfs = split_padded(X_dorothea_valid, y_dorothea_valid, num_splits)
+	print([a.shape for a in splitDfs])
+	saveSplitFiles(dataset_dir, testFilename, splitDfs)
+	print(Counter(y_dorothea_valid))
+
+	print("dorothea data available in {}".format(dataset_dir))
+
+
+def process_madelon(num_splits, run):
 
 	dataset_dir = os.path.join(DATA_DIR, "madelon")
 
-	import datapackage
-	data_url = 'https://datahub.io/machine-learning/madelon/datapackage.json'
-	# to load Data Package into storage
-	package = datapackage.Package(data_url)
-	# to load only tabular data
-	resources = package.resources
-	for resource in resources:
-	    if resource.tabular:
-	        madelon_data = pd.read_csv(resource.descriptor['path'])
+	trainDataFilename = "madelon_train.csv"
+	validDataFilename = "madelon_valid.csv"
+	madelon_train_data = pd.read_csv(os.path.join(dataset_dir, trainDataFilename), header=None)
+	madelon_valid_data = pd.read_csv(os.path.join(dataset_dir, validDataFilename), header=None)
+	
+	X_madelon_train, y_madelon_train = madelon_train_data.iloc[:, 1:], madelon_train_data.iloc[:, 0]
+	X_madelon_train = np.array(X_madelon_train)
+	y_madelon_train = np.array(y_madelon_train) 
+	y_madelon_train[y_madelon_train == -1] = 0
+	y_madelon_train[y_madelon_train == 1] = 1
+
+	X_madelon_valid, y_madelon_valid = madelon_valid_data.iloc[:, 1:], madelon_valid_data.iloc[:, 0]
+	X_madelon_valid = np.array(X_madelon_valid)
+	y_madelon_valid = np.array(y_madelon_valid) 
+	y_madelon_valid[y_madelon_valid == -1] = 0
+	y_madelon_valid[y_madelon_valid == 1] = 1
 
 
-	X_madelon, y_madelon = madelon_data.iloc[:, :-1], madelon_data.iloc[:, -1]
-	X_madelon = np.array(X_madelon)
-	y_madelon = np.array(y_madelon) 
-	X_madelon = MinMaxScaler().fit_transform(X_madelon) # scale
-	y_madelon[y_madelon == 1] = 0
-	y_madelon[y_madelon == 2] = 1
-	X_madelon_train, X_madelon_test, y_madelon_train, y_madelon_test = train_test_split(X_madelon, y_madelon, test_size=0.2, random_state=42)
+	# Normalize data
+	scaler = MinMaxScaler().fit(X_madelon_train)
+	X_madelon_train = scaler.transform(X_madelon_train)
+	X_madelon_valid = scaler.transform(X_madelon_valid)
 
+	# Hstack labels
 	all_train = np.hstack((y_madelon_train.reshape(-1,1), X_madelon_train))
-	all_test = np.hstack((y_madelon_test.reshape(-1,1), X_madelon_test))
+	all_test = np.hstack((y_madelon_valid.reshape(-1,1), X_madelon_valid))
+
 	
 	pd.DataFrame(all_train).to_csv(os.path.join(dataset_dir, "madelon_train_binary.csv"), index=None, header=None)
 	pd.DataFrame(all_test).to_csv(os.path.join(dataset_dir, "madelon_test_binary.csv"), index=None, header=None)
 	
 	trainFilename = "madelon_train.csv"
 	testFilename = "madelon_test.csv"
-	# Load and process synthetic data
+
 	# Process training set
 	splitDfs = split_padded(X_madelon_train, y_madelon_train, num_splits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, trainFilename, splitDfs)
 	print(Counter(y_madelon_train))
 
-
 	# Process test set
-	splitDfs = split_padded(X_madelon_test, y_madelon_test, num_splits)
+	splitDfs = split_padded(X_madelon_valid, y_madelon_valid, num_splits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, testFilename, splitDfs)
-	print(Counter(y_madelon_test))
+	print(Counter(y_madelon_valid))
 
 	print("madelon data available in {}".format(dataset_dir))
 
+
+def process_gisette(num_splits, run):
+	dataset_dir = os.path.join(DATA_DIR, "gisette")
+	trainDataFilename = "gisette_train.csv"
+	validDataFilename = "gisette_valid.csv"
+	gisette_train_data = pd.read_csv(os.path.join(dataset_dir, trainDataFilename), header=None)
+	gisette_valid_data = pd.read_csv(os.path.join(dataset_dir, validDataFilename), header=None)
+	
+	X_gisette_train, y_gisette_train = gisette_train_data.iloc[:, 1:], gisette_train_data.iloc[:, 0]
+	X_gisette_train = np.array(X_gisette_train)
+	y_gisette_train = np.array(y_gisette_train) 
+	y_gisette_train[y_gisette_train == -1] = 0
+	y_gisette_train[y_gisette_train == 1] = 1
+
+	X_gisette_valid, y_gisette_valid = gisette_valid_data.iloc[:, 1:], gisette_valid_data.iloc[:, 0]
+	X_gisette_valid = np.array(X_gisette_valid)
+	y_gisette_valid = np.array(y_gisette_valid) 
+	y_gisette_valid[y_gisette_valid == -1] = 0
+	y_gisette_valid[y_gisette_valid == 1] = 1
+
+	# Normalize data
+	scaler = MinMaxScaler().fit(X_gisette_train)
+	X_gisette_train = scaler.transform(X_gisette_train)
+	X_gisette_valid = scaler.transform(X_gisette_valid)
+
+	# Hstack labels
+	all_train = np.hstack((y_gisette_train.reshape(-1,1), X_gisette_train))
+	all_test = np.hstack((y_gisette_valid.reshape(-1,1), X_gisette_valid))
+
+
+	pd.DataFrame(all_train).to_csv(os.path.join(dataset_dir, "gisette_train_binary.csv"), index=None, header=None)
+	pd.DataFrame(all_test).to_csv(os.path.join(dataset_dir, "gisette_test_binary.csv"), index=None, header=None)
+
+	print("Saving binary files")
+	print(X_gisette_train.shape, X_gisette_valid.shape)
+
+	trainFilename = "gisette_train.csv"
+	testFilename = "gisette_test.csv"
+
+	# Process training set
+	splitDfs = split_padded(X_gisette_train, y_gisette_train, num_splits)
+	print([a.shape for a in splitDfs])
+	saveSplitFiles(dataset_dir, trainFilename, splitDfs)
+	print(Counter(y_gisette_train))
+
+
+	# Process test set
+	splitDfs = split_padded(X_gisette_valid, y_gisette_valid, num_splits)
+	print([a.shape for a in splitDfs])
+	saveSplitFiles(dataset_dir, testFilename, splitDfs)
+	print(Counter(y_gisette_valid))
+	print("Gisette data available in {}".format(dataset_dir))
+
 if __name__ == "__main__":
 	args = load_args()
+	#TODO: Delete existing csvs first
 	
 	if args.dataset == "sonar":
-		process_sonar(args.numsplits)
+		process_sonar(args.numsplits, args.run)
 
 	elif args.dataset == "madelon":
-		process_madelon(args.numsplits)
+		process_madelon(args.numsplits, args.run)
+
+	elif args.dataset == "gisette":
+		process_gisette(args.numsplits, args.run)
+
+	elif args.dataset == "arcene":
+		process_arcene(args.numsplits, args.run)
+
+	elif args.dataset == "dorothea":
+		process_dorothea(args.numsplits, args.run)
+
+	elif args.dataset == "dexter":
+		process_dexter(args.numsplits, args.run)
