@@ -6,7 +6,7 @@ from collections import Counter
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import logging
-
+import random
 
 
 # constants
@@ -23,7 +23,9 @@ def load_args():
 	                    help="Name of dataset")
 	parser.add_argument("-r", "--run", type=int, default=0,
 	                    help="Run number, determines random seed.")
-	
+	parser.add_argument("-rs", "--random_split", type=bool, default=0,
+	                    help="Flag to check if we want random vertical splits.")
+		
 	args = parser.parse_args()
 	return args
 
@@ -110,7 +112,7 @@ def unpickle(file):
 
 
 
-def process_sonar(num_splits, run):
+def process_sonar(numsplits, run):
 
 	dataset_dir = os.path.join(DATA_DIR, "sonar")
 	trainFilename = "sonar_train.csv"
@@ -119,7 +121,7 @@ def process_sonar(num_splits, run):
 	# Process training set
 	data, labels = loadData(dataset_dir, trainFilename)
 	print(data.shape, labels.shape)
-	splitDfs = split_padded(data, labels, num_splits)
+	splitDfs = split_padded(data, labels, numsplits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, trainFilename, splitDfs)
 	print(Counter(labels))
@@ -131,7 +133,7 @@ def process_sonar(num_splits, run):
 
 	# Process test set
 	data, labels = loadData(dataset_dir, testFilename)
-	splitDfs = split_padded(data, labels, num_splits)
+	splitDfs = split_padded(data, labels, numsplits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, testFilename, splitDfs)
 	print(Counter(labels))
@@ -143,7 +145,7 @@ def process_sonar(num_splits, run):
 	print("Sonar data available in {}".format(dataset_dir))
 
 
-def process_arcene(num_splits, run):
+def process_arcene(numsplits, run):
 
 
 	dataset_dir = os.path.join(DATA_DIR, "arcene")
@@ -184,14 +186,14 @@ def process_arcene(num_splits, run):
 	testFilename = "arcene_test.csv"
 
 	# Process training set
-	splitDfs = split_padded(X_arcene_train, y_arcene_train, num_splits)
+	splitDfs = split_padded(X_arcene_train, y_arcene_train, numsplits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, trainFilename, splitDfs)
 	print(Counter(y_arcene_train))
 
 
 	# Process valid set
-	splitDfs = split_padded(X_arcene_valid, y_arcene_valid, num_splits)
+	splitDfs = split_padded(X_arcene_valid, y_arcene_valid, numsplits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, testFilename, splitDfs)
 	print(Counter(y_arcene_valid))
@@ -200,7 +202,7 @@ def process_arcene(num_splits, run):
 
 
 
-def process_dexter(num_splits, run):
+def process_dexter(numsplits, run):
 
 
 	dataset_dir = os.path.join(DATA_DIR, "dexter")
@@ -241,14 +243,14 @@ def process_dexter(num_splits, run):
 	testFilename = "dexter_test.csv"
 
 	# Process training set
-	splitDfs = split_padded(X_dexter_train, y_dexter_train, num_splits)
+	splitDfs = split_padded(X_dexter_train, y_dexter_train, numsplits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, trainFilename, splitDfs)
 	print(Counter(y_dexter_train))
 
 
 	# Process valid set
-	splitDfs = split_padded(X_dexter_valid, y_dexter_valid, num_splits)
+	splitDfs = split_padded(X_dexter_valid, y_dexter_valid, numsplits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, testFilename, splitDfs)
 	print(Counter(y_dexter_valid))
@@ -259,7 +261,7 @@ def process_dexter(num_splits, run):
 
 
 
-def process_dorothea(num_splits, run):
+def process_dorothea(numsplits, run):
 
 
 	dataset_dir = os.path.join(DATA_DIR, "dorothea")
@@ -300,14 +302,14 @@ def process_dorothea(num_splits, run):
 	testFilename = "dorothea_test.csv"
 
 	# Process training set
-	splitDfs = split_padded(X_dorothea_train, y_dorothea_train, num_splits)
+	splitDfs = split_padded(X_dorothea_train, y_dorothea_train, numsplits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, trainFilename, splitDfs)
 	print(Counter(y_dorothea_train))
 
 
 	# Process valid set
-	splitDfs = split_padded(X_dorothea_valid, y_dorothea_valid, num_splits)
+	splitDfs = split_padded(X_dorothea_valid, y_dorothea_valid, numsplits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, testFilename, splitDfs)
 	print(Counter(y_dorothea_valid))
@@ -315,7 +317,7 @@ def process_dorothea(num_splits, run):
 	print("dorothea data available in {}".format(dataset_dir))
 
 
-def process_madelon(num_splits, run):
+def process_madelon(numsplits, run):
 
 	dataset_dir = os.path.join(DATA_DIR, "madelon")
 
@@ -354,13 +356,13 @@ def process_madelon(num_splits, run):
 	testFilename = "madelon_test.csv"
 
 	# Process training set
-	splitDfs = split_padded(X_madelon_train, y_madelon_train, num_splits)
+	splitDfs = split_padded(X_madelon_train, y_madelon_train, numsplits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, trainFilename, splitDfs)
 	print(Counter(y_madelon_train))
 
 	# Process test set
-	splitDfs = split_padded(X_madelon_valid, y_madelon_valid, num_splits)
+	splitDfs = split_padded(X_madelon_valid, y_madelon_valid, numsplits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, testFilename, splitDfs)
 	print(Counter(y_madelon_valid))
@@ -368,7 +370,7 @@ def process_madelon(num_splits, run):
 	print("madelon data available in {}".format(dataset_dir))
 
 
-def process_gisette(num_splits, run):
+def process_gisette(numsplits, run):
 	dataset_dir = os.path.join(DATA_DIR, "gisette")
 	trainDataFilename = "gisette_train.csv"
 	validDataFilename = "gisette_valid.csv"
@@ -407,18 +409,57 @@ def process_gisette(num_splits, run):
 	testFilename = "gisette_test.csv"
 
 	# Process training set
-	splitDfs = split_padded(X_gisette_train, y_gisette_train, num_splits)
+	splitDfs = split_padded(X_gisette_train, y_gisette_train, numsplits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, trainFilename, splitDfs)
 	print(Counter(y_gisette_train))
 
 
 	# Process test set
-	splitDfs = split_padded(X_gisette_valid, y_gisette_valid, num_splits)
+	splitDfs = split_padded(X_gisette_valid, y_gisette_valid, numsplits)
 	print([a.shape for a in splitDfs])
 	saveSplitFiles(dataset_dir, testFilename, splitDfs)
 	print(Counter(y_gisette_valid))
 	print("Gisette data available in {}".format(dataset_dir))
+
+def split_random(df_train, df_test, numsplits):
+	used_indices = []
+	num_features = df_train.shape[1]
+	num_features_split = int(num_features / float(numsplits))
+
+	df_train_splits = []
+	df_test_splits = []
+
+	for split in range(numsplits):
+		if split == numsplits - 1:
+			num_features_split = num_features - len(used_indices) - 1
+
+		remaining_indices = [i for i in range(1, num_features) if i not in used_indices]
+		idx = random.sample(remaining_indices, num_features_split)
+		df_train_split = df_train.iloc[:,idx]
+		df_test_split = df_test.iloc[:,idx]
+
+		df_train_splits.append(df_train_split)
+		df_test_splits.append(df_test_split)
+
+	return df_train_splits, df_test_splits
+
+def process_mnist(numsplits, random_split=True):
+	dataset_dir = os.path.join(DATA_DIR, "mnist")
+	trainDataFilename = "mnist_train_binary.csv"
+	validDataFilename = "mnist_test_binary.csv"
+	mnist_train_data = pd.read_csv(os.path.join(dataset_dir, trainDataFilename), header=None)
+	mnist_test_data = pd.read_csv(os.path.join(dataset_dir, validDataFilename), header=None)
+
+	if random_split:
+		df_train_splits, df_test_splits = split_random(mnist_train_data, mnist_test_data, numsplits)
+	else:
+		df_train_splits = split_padded(mnist_train_data.iloc[:, 1:], mnist_train_data.iloc[:, 0], numsplits)
+		df_test_splits = split_padded(mnist_test_data.iloc[:, 1:], mnist_test_data.iloc[:, 0], numsplits)
+
+	saveSplitFiles(dataset_dir, "mnist_train", df_train_splits)
+	saveSplitFiles(dataset_dir, "mnist_test", df_test_splits)
+
 
 if __name__ == "__main__":
 	args = load_args()
@@ -441,3 +482,6 @@ if __name__ == "__main__":
 
 	elif args.dataset == "dexter":
 		process_dexter(args.numsplits, args.run)
+
+	elif args.dataset == "mnist":
+		process_mnist(args.numsplits, args.random_split)
