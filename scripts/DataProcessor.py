@@ -7,6 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import logging
 import random
+import math
 
 
 # constants
@@ -425,7 +426,7 @@ def process_gisette(numsplits, run):
 def split_random(df_train, df_test, numsplits):
 	used_indices = []
 	num_features = df_train.shape[1]
-	num_features_split = int(num_features / float(numsplits))
+	num_features_split = math.ceil(num_features / float(numsplits))
 
 	df_train_splits = []
 	df_test_splits = []
@@ -436,6 +437,7 @@ def split_random(df_train, df_test, numsplits):
 
 		remaining_indices = [i for i in range(1, num_features) if i not in used_indices]
 		idx = random.sample(remaining_indices, num_features_split)
+		used_indices = used_indices + idx
 		df_train_split = df_train.iloc[:,idx]
 		df_test_split = df_test.iloc[:,idx]
 
