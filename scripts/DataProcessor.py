@@ -23,7 +23,7 @@ def load_args():
 	                    help="Name of dataset")
 	parser.add_argument("-r", "--run", type=int, default=0,
 	                    help="Run number, determines random seed.")
-	parser.add_argument("-rs", "--random_split", type=bool, default=0,
+	parser.add_argument("-rs", "--random_split", type=bool, default=False,
 	                    help="Flag to check if we want random vertical splits.")
 		
 	args = parser.parse_args()
