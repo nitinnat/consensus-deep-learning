@@ -430,8 +430,8 @@ public void nextCycle(Node node, int pid) {
 				if(pn.getID() == Network.size()-1) {
 					
 					
-					String csv_filename = resourcepath + "/run" + pn.num_run + "/vpnn_results_temp_" + Network.size() + ".csv";
-					compute_distributed_voted_stats(csv_filename, iter);
+					//String csv_filename = resourcepath + "/run" + pn.num_run + "/vpnn_results_temp_" + Network.size() + ".csv";
+					compute_distributed_voted_stats(pn.csv_filename, iter);
 					
 			}	
 		}

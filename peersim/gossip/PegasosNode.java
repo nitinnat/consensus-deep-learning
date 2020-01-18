@@ -105,6 +105,7 @@ public class PegasosNode implements Node {
 	private static final String PAR_NUMHIDDEN = "numhidden";
 	private static final String PAR_CYCLES_FOR_CONVERGENCE = "cyclesforconvergence";
 	private static final String PAR_CONVERGENCE_EPSILON = "convergenceepsilon";
+	private static final String PAR_RANDOM_SEED = "randomseed";
 	private static long counterID = -1; // used to generate unique IDs 
 	protected Protocol[] protocol = null; //The protocols on this node.
 	
@@ -162,6 +163,9 @@ public class PegasosNode implements Node {
 	public int num_converged_cycles = 0;
 	public double convergence_epsilon;
 	public int cycles_for_convergence;
+	
+	// Seed
+	public long random_seed;
 	
 	// ================ constructor and initialization =================
 	// =================================================================
@@ -226,6 +230,7 @@ public class PegasosNode implements Node {
 		learning_rate = Configuration.getDouble(prefix + "." + PAR_LEARNING_RATE, 0.01);
 		cycles_for_convergence = Configuration.getInt(prefix + "." + PAR_CYCLES_FOR_CONVERGENCE, 10);
 		convergence_epsilon = Configuration.getDouble(prefix + "." + PAR_CONVERGENCE_EPSILON, 0.01);
+		random_seed = Configuration.getLong(prefix + "." + PAR_RANDOM_SEED, 12345);
 		
 		System.out.println("model file and train file are saved in: " + resourcepath);
 		CommonState.setNode(this);
@@ -270,7 +275,7 @@ public class PegasosNode implements Node {
 		
 		// Determine base dataset name
 		String[] temp_data = resourcepath.split("/");
-		String base_dataset_name = temp_data[temp_data.length - 1];
+		String base_dataset_name = temp_data[temp_data.length - 2];
         
 		
 		// Get train file and test file paths
@@ -290,7 +295,10 @@ public class PegasosNode implements Node {
         
         
 		// Create a folder for this run if it does not exist
-		File directory = new File(resourcepath + "/run" + result.num_run);
+        String new_dir_name = resourcepath + "/run_" + result.num_run + "_numhidden_" + num_hidden_nodes + "_lr_" + learning_rate + "_networksize_" + Network.size()+ "_randomseed_" + random_seed;
+        System.out.println("Creating csv file to store the results.");
+    	result.csv_filename = new_dir_name + "/vpnn_results_temp_" + Network.size() + ".csv";
+        File directory = new File(new_dir_name);
 	    if (! directory.exists()){
 	        directory.mkdir();
 	    
@@ -303,9 +311,8 @@ public class PegasosNode implements Node {
 	    	//	processData(base_dataset_name, Network.size(), num_run);
 	    	//}
 	    	// Create headers to store the results
-	    	System.out.println("Creating csv file to store the results.");
-	    	result.csv_filename = resourcepath + "/run" + result.num_run + "/vpnn_results_temp_" + Network.size() + ".csv";
-	    	result.weights_filename = resourcepath + "/run" + result.num_run + "/vpnn_weights_temp_" + Network.size() + ".csv";
+	    	
+	    	//result.weights_filename = resourcepath + "/run" + result.num_run + "/vpnn_weights_temp_" + Network.size() + ".csv";
 			System.out.println("Storing in " + result.csv_filename);
 			String opString = "Iter,Node,TrainLoss,TestLoss,TrainAccuracy,TestAccuracy,TrainAUC,TestAUC,Converged,NumConvergedCycles";
 			try {
@@ -332,6 +339,7 @@ public class PegasosNode implements Node {
 		    		localTestFilepath,
 		    		test_length, 0, 1
 			        );
+		    
 		    result.train_features = result.train_set.getFeatures();
 		    result.train_labels = result.train_set.getLabels();
 		    result.test_features = result.test_set.getFeatures();
