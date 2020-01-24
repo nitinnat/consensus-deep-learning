@@ -431,6 +431,9 @@ def split_random(df_train, df_test, numsplits):
 	df_train_splits = []
 	df_test_splits = []
 
+	labels_train = df_train[df_train.columns[0]]
+	labels_test = df_test[df_test.columns[0]]
+
 	for split in range(numsplits):
 		if split == numsplits - 1:
 			num_features_split = num_features - len(used_indices) - 1
@@ -439,7 +442,10 @@ def split_random(df_train, df_test, numsplits):
 		idx = random.sample(remaining_indices, num_features_split)
 		used_indices = used_indices + idx
 		df_train_split = df_train.iloc[:,idx]
+		df_train_split.insert(loc=0, column='0', value = labels_train)
+
 		df_test_split = df_test.iloc[:,idx]
+		df_test_split.insert(loc=0, column='0', value = labels_test)
 
 		df_train_splits.append(df_train_split)
 		df_test_splits.append(df_test_split)
