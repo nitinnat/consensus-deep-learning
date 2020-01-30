@@ -61,8 +61,8 @@ import org.nd4j.linalg.indexing.conditions.Conditions;
 
 public class NeuronLayer {
 	INDArray synaptic_weights;
-	public NeuronLayer(int number_of_inputs_per_neuron, int number_of_neurons) {
-		Nd4j.getRandom().setSeed(12345);
+	public NeuronLayer(int number_of_inputs_per_neuron, int number_of_neurons, long randomseed) {
+		Nd4j.getRandom().setSeed(randomseed);
 		double sd = 1/(double)(Math.sqrt(number_of_inputs_per_neuron));
 		synaptic_weights = Nd4j.rand(new int[] {number_of_inputs_per_neuron, number_of_neurons}, new NormalDistribution(0,sd));
 	}

@@ -200,9 +200,12 @@ public class NeuralNetwork {
     	
     	}
     	
+    	// Removing trailing comma
+    	result = result.substring(0, result.length() - 2);
+    	
     	numRows =layer2.synaptic_weights.rows();
 		numCols = layer2.synaptic_weights.columns();
-		
+		result = result + "\n";
     	for(int i=0;i<numRows;i++) {
 			for(int j=0;j<numCols;j++) {
 				result = result + layer2.synaptic_weights.getDouble(i,j) + ",";
@@ -212,6 +215,8 @@ public class NeuralNetwork {
     	
     	// Removing trailing comma
     	result = result.substring(0, result.length() - 2);
+    	
+    	
     	return result;
     }
     
@@ -305,6 +310,11 @@ public class NeuralNetwork {
 	    	bw.close();
     }
 	
+    public void write_weights_into_file(String weights_filename) {
+    	File f = new File(weights_filename);
+		Nd4j.writeTxt(layer1.synaptic_weights.getColumn(0), weights_filename);
+    	System.out.println(Arrays.toString(layer1.synaptic_weights.getColumn(0).shape()));
+    }
     
     public void train_on_all(INDArray training_set_inputs, INDArray training_set_outputs,
     		INDArray testing_set_inputs, INDArray testing_set_outputs,
@@ -365,8 +375,8 @@ public class NeuralNetwork {
     
     public static void main(String args[]) throws IOException, InterruptedException {
         // Create layer 1 (4 neurons, each with 3 inputs)
-        NeuronLayer layer1 = new NeuronLayer(501, 50);
-        NeuronLayer layer2 = new NeuronLayer(50, 1);
+        NeuronLayer layer1 = new NeuronLayer(501, 50, 12345);
+        NeuronLayer layer2 = new NeuronLayer(50, 1, 12345);
         double learning_rate = 0.01;
         
         // Combine the layers to create a neural network

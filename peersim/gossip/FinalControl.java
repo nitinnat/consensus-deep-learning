@@ -84,7 +84,7 @@ public boolean execute() {
 	final int len = Network.size();
 	for (int i = 0; i <  len; i++) {
 		PegasosNode node = (PegasosNode) Network.get(i);
-		//node.writeGlobalWeights();
+		
 		System.out.println("Global weights have been written to "+node.resourcepath+"\\global_" + i + ".dat");
 	}
 	

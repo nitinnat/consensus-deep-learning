@@ -166,6 +166,7 @@ public class PegasosNode implements Node {
 	
 	// Seed
 	public long random_seed;
+	public String result_dir;
 	
 	// ================ constructor and initialization =================
 	// =================================================================
@@ -185,7 +186,7 @@ public class PegasosNode implements Node {
 	        DataSetIterator iterator = new RecordReaderDataSetIterator(rr, batchSize, labelIndex, numClasses);
 	        return iterator.next();
 	    }
-	
+
 	private static void processData(String dataset, int num_splits, int run){
 		if (num_splits > 1)
 		{
@@ -296,6 +297,7 @@ public class PegasosNode implements Node {
         
 		// Create a folder for this run if it does not exist
         String new_dir_name = resourcepath + "/run_" + result.num_run + "_numhidden_" + num_hidden_nodes + "_lr_" + learning_rate + "_networksize_" + Network.size()+ "_randomseed_" + random_seed;
+        result.result_dir = new_dir_name;
         System.out.println("Creating csv file to store the results.");
     	result.csv_filename = new_dir_name + "/vpnn_results_temp_" + Network.size() + ".csv";
         File directory = new File(new_dir_name);
@@ -356,8 +358,8 @@ public class PegasosNode implements Node {
 	        int num_outputs = 1;
 	        
 	        // Create this Node's Neural Network instance
-	        NeuronLayer layer1 = new NeuronLayer(num_features, num_hidden_nodes);
-	        NeuronLayer layer2 = new NeuronLayer(num_hidden_nodes, num_outputs);
+	        NeuronLayer layer1 = new NeuronLayer(num_features, num_hidden_nodes, random_seed);
+	        NeuronLayer layer2 = new NeuronLayer(num_hidden_nodes, num_outputs, random_seed);
 	        
 	        // Combine the layers to create a neural network
 	        result.neural_network = new NeuralNetwork(layer1, layer2, learning_rate);

@@ -6,6 +6,8 @@ from collections import Counter
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import logging
+import random
+import math
 
 
 
@@ -121,6 +123,75 @@ def unpickle(file):
         dict = pickle.load(fo, encoding='bytes')
     return dict
 
+def split_random(df_train, df_test, numsplits):
+	used_indices = []
+	
+
+	df_train_splits = []
+	df_test_splits = []
+
+	labels_train = df_train[df_train.columns[0]]
+	labels_test = df_test[df_test.columns[0]]
+
+	df_train = df_train.iloc[:, 1:]
+	df_test = df_test.iloc[:, 1:]
+
+
+	num_features = df_train.shape[1]
+	num_features_split = int(np.ceil(num_features / float(numsplits)))
+
+	idx_dict = {}
+	for split in range(numsplits):
+		# if split == numsplits - 1:
+		# 	num_features_split = num_features - len(used_indices) 
+
+		remaining_indices = [i for i in range(num_features) if i not in used_indices]
+		idx = random.sample(remaining_indices, num_features_split)
+		idx_dict[split] = idx
+		used_indices = used_indices + idx
+		df_train_split = df_train.iloc[:,idx]
+		df_train_split.insert(loc=0, column='0', value = labels_train)
+
+		df_test_split = df_test.iloc[:,idx]
+		df_test_split.insert(loc=0, column='0', value = labels_test)
+
+		df_train_splits.append(df_train_split)
+		df_test_splits.append(df_test_split)
+
+	return df_train_splits, df_test_splits, idx_dict
+
+
+# def split_random(df_train, df_test, numsplits):
+#     used_indices = []
+#     num_features = df_train.shape[1]
+#     num_features_split = math.ceil(num_features / float(numsplits))
+#     print(num_features_split)
+#     df_train_splits = []
+#     df_test_splits = []
+
+#     labels_train = df_train[df_train.columns[0]]
+#     labels_test = df_test[df_test.columns[0]]
+
+#     idx_dict = {}
+#     for split in range(numsplits):
+#         if split == numsplits - 1:
+#             num_features_split = num_features - len(used_indices) - 1
+
+#         remaining_indices = [i for i in range(1, num_features) if i not in used_indices]
+#         idx = random.sample(remaining_indices, num_features_split)
+#         print(len(idx))
+#         idx_dict[split] = idx
+#         used_indices = used_indices + idx
+#         df_train_split = df_train.iloc[:,idx]
+#         df_train_split.insert(loc=0, column='0', value = labels_train)
+
+#         df_test_split = df_test.iloc[:,idx]
+#         df_test_split.insert(loc=0, column='0', value = labels_test)
+
+#         df_train_splits.append(df_train_split)
+#         df_test_splits.append(df_test_split)
+
+#     return df_train_splits, df_test_splits, idx_dict
 
 
 def process_sonar(num_splits, run):
@@ -203,21 +274,75 @@ def process_arcene(num_splits, run):
 		trainFilename = "arcene_train.csv"
 		testFilename = "arcene_test.csv"
 
-		# Process training set
-		splitDfs = split_padded(X_arcene_train, y_arcene_train, num_splits)
-		print([a.shape for a in splitDfs])
-		saveSplitFiles(dataset_dir, trainFilename, splitDfs)
-		print(Counter(y_arcene_train))
+		splitTrainDfs, splitValidDfs, idx_dict = split_random(pd.DataFrame(all_train), pd.DataFrame(all_test), num_splits)
+		print([a.shape for a in splitTrainDfs])
+		print([a.shape for a in splitValidDfs])
 
-
-		# Process valid set
-		splitDfs = split_padded(X_arcene_valid, y_arcene_valid, num_splits)
-		print([a.shape for a in splitDfs])
-		saveSplitFiles(dataset_dir, testFilename, splitDfs)
-		print(Counter(y_arcene_valid))
+		saveSplitFiles(dataset_dir, trainFilename, splitTrainDfs)
+		saveSplitFiles(dataset_dir, testFilename, splitValidDfs)
+		import pickle
+		pickle.dump(idx_dict, open(os.path.join(dataset_dir, "split_feature_indices.pkl"), "wb"))
 
 		print("Arcene data available in {}".format(dataset_dir))
 
+
+def process_mnist(num_splits, run):
+
+	feature_splits = 3
+	main_data_dir = os.path.join(DATA_DIR, "mnist")
+	for i in range(feature_splits):
+		dataset_dir = os.path.join(DATA_DIR, "mnist", "feature_split_{}".format(i+1))
+		if not os.path.exists(dataset_dir):
+			os.makedirs(dataset_dir)
+
+		trainDataFilename = "mnist_train_binary.csv"
+		validDataFilename = "mnist_test_binary.csv"
+		arcene_train_data = pd.read_csv(os.path.join(main_data_dir, trainDataFilename), header=None)
+		arcene_valid_data = pd.read_csv(os.path.join(main_data_dir, validDataFilename), header=None)
+		
+		X_arcene_train, y_arcene_train = arcene_train_data.iloc[:, 1:], arcene_train_data.iloc[:, 0]
+		X_arcene_train = np.array(X_arcene_train)
+		y_arcene_train = np.array(y_arcene_train) 
+		y_arcene_train[y_arcene_train == -1] = 0
+		y_arcene_train[y_arcene_train == 1] = 1
+
+		X_arcene_valid, y_arcene_valid = arcene_valid_data.iloc[:, 1:], arcene_valid_data.iloc[:, 0]
+		X_arcene_valid = np.array(X_arcene_valid)
+		y_arcene_valid = np.array(y_arcene_valid) 
+		y_arcene_valid[y_arcene_valid == -1] = 0
+		y_arcene_valid[y_arcene_valid == 1] = 1
+
+
+		# Normalize data
+		scaler = MinMaxScaler().fit(X_arcene_train)
+		X_arcene_train_orig = scaler.transform(X_arcene_train)
+		X_arcene_valid_orig = scaler.transform(X_arcene_valid)
+
+		X_arcene_train, X_arcene_valid = random_feature_split(i*12345, X_arcene_train_orig, X_arcene_valid_orig)
+
+
+		# Hstack labels
+		all_train = np.hstack((y_arcene_train.reshape(-1,1), X_arcene_train_orig))
+		all_test = np.hstack((y_arcene_valid.reshape(-1,1), X_arcene_valid_orig))
+
+		
+		pd.DataFrame(all_train).to_csv(os.path.join(dataset_dir, "mnist_train_binary.csv"), index=None, header=None)
+		pd.DataFrame(all_test).to_csv(os.path.join(dataset_dir, "mnist_test_binary.csv"), index=None, header=None)
+
+		
+		trainFilename = "mnist_train.csv"
+		testFilename = "mnist_test.csv"
+
+		splitTrainDfs, splitValidDfs, idx_dict = split_random(pd.DataFrame(all_train), pd.DataFrame(all_test), num_splits)
+		print([a.shape for a in splitTrainDfs])
+		print([a.shape for a in splitValidDfs])
+
+		saveSplitFiles(dataset_dir, trainFilename, splitTrainDfs)
+		saveSplitFiles(dataset_dir, testFilename, splitValidDfs)
+		import pickle
+		pickle.dump(idx_dict, open(os.path.join(dataset_dir, "split_feature_indices.pkl"), "wb"))
+
+		print("Mnist data available in {}".format(dataset_dir))
 
 
 def process_dexter(num_splits, run):
@@ -287,7 +412,7 @@ def process_dexter(num_splits, run):
 
 def process_dorothea(num_splits, run):
 
-	feature_splits = 5
+	feature_splits = 1
 	main_data_dir = os.path.join(DATA_DIR, "dorothea")
 	for i in range(feature_splits):
 		dataset_dir = os.path.join(DATA_DIR, "dorothea", "feature_split_{}".format(i+1))
@@ -331,18 +456,27 @@ def process_dorothea(num_splits, run):
 		trainFilename = "dorothea_train.csv"
 		testFilename = "dorothea_test.csv"
 
-		# Process training set
-		splitDfs = split_padded(X_dorothea_train, y_dorothea_train, num_splits)
-		print([a.shape for a in splitDfs])
-		saveSplitFiles(dataset_dir, trainFilename, splitDfs)
-		print(Counter(y_dorothea_train))
+		# # Process training set
+		# splitDfs = split_padded(X_dorothea_train, y_dorothea_train, num_splits)
+		# print([a.shape for a in splitDfs])
+		# saveSplitFiles(dataset_dir, trainFilename, splitDfs)
+		# print(Counter(y_dorothea_train))
 
 
-		# Process valid set
-		splitDfs = split_padded(X_dorothea_valid, y_dorothea_valid, num_splits)
-		print([a.shape for a in splitDfs])
-		saveSplitFiles(dataset_dir, testFilename, splitDfs)
-		print(Counter(y_dorothea_valid))
+		# # Process valid set
+		# splitDfs = split_padded(X_dorothea_valid, y_dorothea_valid, num_splits)
+		# print([a.shape for a in splitDfs])
+		# saveSplitFiles(dataset_dir, testFilename, splitDfs)
+		# print(Counter(y_dorothea_valid))
+
+		splitTrainDfs, splitValidDfs, idx_dict = split_random(pd.DataFrame(all_train), pd.DataFrame(all_test), num_splits)
+		print([a.shape for a in splitTrainDfs])
+		print([a.shape for a in splitValidDfs])
+
+		saveSplitFiles(dataset_dir, trainFilename, splitTrainDfs)
+		saveSplitFiles(dataset_dir, testFilename, splitValidDfs)
+		import pickle
+		pickle.dump(idx_dict, open(os.path.join(dataset_dir, "split_feature_indices.pkl"), "wb"))
 
 		print("dorothea data available in {}".format(dataset_dir))
 
@@ -408,6 +542,136 @@ def process_madelon(num_splits, run):
 
 		print("madelon data available in {}".format(dataset_dir))
 
+
+def process_ccat(num_splits, run):
+	from sklearn.datasets import load_svmlight_file
+
+	feature_splits = 5
+
+	main_data_dir = os.path.join(DATA_DIR, "ccat")
+	for i in range(5):
+		dataset_dir = os.path.join(DATA_DIR, "ccat", "feature_split_{}".format(i+1))
+		if not os.path.exists(dataset_dir):
+			os.makedirs(dataset_dir)
+		trainDataFilename = "ccat.trn"
+		validDataFilename = "ccat.tst"
+		ccat_train_data, ccat_train_labels = load_svmlight_file(os.path.join(main_data_dir, trainDataFilename))
+		ccat_valid_data, ccat_valid_labels = load_svmlight_file(os.path.join(main_data_dir, validDataFilename))
+		print(ccat_train_data.todense().shape, ccat_valid_data.todense().shape)
+
+
+def process_adult(num_splits, run):
+	from sklearn.datasets import load_svmlight_file
+
+	feature_splits = 5
+	main_data_dir = os.path.join(DATA_DIR, "adult")
+	trainDataFilename = "adult.trn"
+	validDataFilename = "adult.tst"
+	X_adult_train, y_adult_train = load_svmlight_file(os.path.join(main_data_dir, trainDataFilename))
+	X_adult_valid, y_adult_valid = load_svmlight_file(os.path.join(main_data_dir, validDataFilename))
+	
+	X_adult_train_orig = X_adult_train.todense()
+	X_adult_valid_orig = X_adult_valid.todense()
+
+	y_adult_train[y_adult_train == -1] = 0
+	y_adult_train[y_adult_train == 1] = 1
+
+	y_adult_valid[y_adult_valid == -1] = 0
+	y_adult_valid[y_adult_valid == 1] = 1
+
+	
+	for i in range(5):
+		dataset_dir = os.path.join(DATA_DIR, "adult", "feature_split_{}".format(i+1))
+		if not os.path.exists(dataset_dir):
+			os.makedirs(dataset_dir)
+		
+
+
+		# Hstack labels
+		all_train = np.hstack((y_adult_train.reshape(-1,1), X_adult_train_orig))
+		all_test = np.hstack((y_adult_valid.reshape(-1,1), X_adult_valid_orig))
+
+		X_adult_train, X_adult_valid = random_feature_split(i*12345, X_adult_train_orig, X_adult_valid_orig)
+
+		pd.DataFrame(all_train).to_csv(os.path.join(dataset_dir, "adult_train_binary.csv"), index=None, header=None)
+		pd.DataFrame(all_test).to_csv(os.path.join(dataset_dir, "adult_test_binary.csv"), index=None, header=None)
+
+		print("Saving binary files")
+		print(X_adult_train.shape, X_adult_valid.shape)
+
+		trainFilename = "adult_train.csv"
+		testFilename = "adult_test.csv"
+
+		# Process training set
+		splitDfs = split_padded(X_adult_train, y_adult_train, num_splits)
+		print([a.shape for a in splitDfs])
+		saveSplitFiles(dataset_dir, trainFilename, splitDfs)
+		print(Counter(y_adult_train))
+
+
+		# Process test set
+		splitDfs = split_padded(X_adult_valid, y_adult_valid, num_splits)
+		print([a.shape for a in splitDfs])
+		saveSplitFiles(dataset_dir, testFilename, splitDfs)
+		print(Counter(y_adult_valid))
+		print("Cov2 data available in {}".format(dataset_dir))
+		
+
+def process_covtype(num_splits, nitinnat):
+	from sklearn.datasets import load_svmlight_file
+
+	feature_splits = 5
+	main_data_dir = os.path.join(DATA_DIR, "cov2")
+	trainDataFilename = "covtype_bn_train.trn"
+	validDataFilename = "covtype_bn_test.tst"
+	X_cov2_train, y_cov2_train = load_svmlight_file(os.path.join(main_data_dir, trainDataFilename))
+	X_cov2_valid, y_cov2_valid = load_svmlight_file(os.path.join(main_data_dir, validDataFilename))
+	
+	X_cov2_train_orig = X_cov2_train.todense()
+	X_cov2_valid_orig = X_cov2_valid.todense()
+
+	y_cov2_train[y_cov2_train == -1] = 0
+	y_cov2_train[y_cov2_train == 1] = 1
+
+	y_cov2_valid[y_cov2_valid == -1] = 0
+	y_cov2_valid[y_cov2_valid == 1] = 1
+
+	
+	for i in range(5):
+		dataset_dir = os.path.join(DATA_DIR, "cov2", "feature_split_{}".format(i+1))
+		if not os.path.exists(dataset_dir):
+			os.makedirs(dataset_dir)
+		
+
+
+		# Hstack labels
+		all_train = np.hstack((y_cov2_train.reshape(-1,1), X_cov2_train_orig))
+		all_test = np.hstack((y_cov2_valid.reshape(-1,1), X_cov2_valid_orig))
+
+		X_cov2_train, X_cov2_valid = random_feature_split(i*12345, X_cov2_train_orig, X_cov2_valid_orig)
+
+		pd.DataFrame(all_train).to_csv(os.path.join(dataset_dir, "cov2_train_binary.csv"), index=None, header=None)
+		pd.DataFrame(all_test).to_csv(os.path.join(dataset_dir, "cov2_test_binary.csv"), index=None, header=None)
+
+		print("Saving binary files")
+		print(X_cov2_train.shape, X_cov2_valid.shape)
+
+		trainFilename = "cov2_train.csv"
+		testFilename = "cov2_test.csv"
+
+		# Process training set
+		splitDfs = split_padded(X_cov2_train, y_cov2_train, num_splits)
+		print([a.shape for a in splitDfs])
+		saveSplitFiles(dataset_dir, trainFilename, splitDfs)
+		print(Counter(y_cov2_train))
+
+
+		# Process test set
+		splitDfs = split_padded(X_cov2_valid, y_cov2_valid, num_splits)
+		print([a.shape for a in splitDfs])
+		saveSplitFiles(dataset_dir, testFilename, splitDfs)
+		print(Counter(y_cov2_valid))
+		print("Cov2 data available in {}".format(dataset_dir))
 
 def process_gisette(num_splits, run):
 
@@ -491,3 +755,15 @@ if __name__ == "__main__":
 
 	elif args.dataset == "dexter":
 		process_dexter(args.numsplits, args.run)
+
+	elif args.dataset == "ccat":
+		process_ccat(args.numsplits, args.run)
+
+	elif args.dataset == "adult":
+		process_adult(args.numsplits, args.run)
+
+	elif args.dataset == "covtype":
+		process_covtype(args.numsplits, args.run)
+
+	elif args.dataset == "mnist":
+		process_mnist(args.numsplits, args.run)

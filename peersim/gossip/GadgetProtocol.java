@@ -326,6 +326,7 @@ public void nextCycle(Node node, int pid) {
 							pn.converged = true;
 							System.out.println("Algorithm has converged for node " + pn.getID() + 
 									" after " + pn.num_converged_cycles + " cycles. No further processing will be done.");
+							pn.neural_network.write_weights_into_file(pn.result_dir + "\\global_weights_centralized.txt");
 						}
 					}
 					
@@ -333,6 +334,9 @@ public void nextCycle(Node node, int pid) {
 					e.printStackTrace();
 				}
 				
+				
+
+			pn.neural_network.write_weights_into_file(pn.resourcepath + "\\global_weights_centralized.txt");
 				
 			}
 	
@@ -418,7 +422,9 @@ public void nextCycle(Node node, int pid) {
 						pn.converged = true;
 						System.out.println("Algorithm has converged for node " + pn.getID() + 
 								" after " + pn.num_converged_cycles + " cycles. No further processing will be done.");
-					}
+						pn.neural_network.write_weights_into_file(pn.result_dir + "\\global_weights_dist_" + pn.getID() + ".txt");
+		        	
+		        	}
 		        	// Update train loss
 		        	pn.train_auc = pn_train_auc;
 					
