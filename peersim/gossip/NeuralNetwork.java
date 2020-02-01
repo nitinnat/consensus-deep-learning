@@ -75,6 +75,7 @@ public class NeuralNetwork {
 	double test_loss;
 	double train_auc;
 	double test_auc;
+	String loss_func;
 	
 	public static DataSet readCSVDataset(
 	        String csvFileClasspath, int batchSize, int labelIndex, int numClasses)
@@ -85,7 +86,7 @@ public class NeuralNetwork {
 	        DataSetIterator iterator = new RecordReaderDataSetIterator(rr, batchSize, labelIndex, numClasses);
 	        return iterator.next();
 	    }
-	public NeuralNetwork(NeuronLayer layerA, NeuronLayer layerB, double lr) {
+	public NeuralNetwork(NeuronLayer layerA, NeuronLayer layerB, double lr, String lf) {
 		layer1 = layerA;
 		layer2 = layerB;
 		learning_rate = lr;
@@ -93,6 +94,7 @@ public class NeuralNetwork {
 		test_loss = -1;
 		train_auc = -1;
 		test_auc = -1;
+		loss_func = lf;
 	}
 	
 	public INDArray _sigmoid(INDArray x) {	
@@ -129,17 +131,48 @@ public class NeuralNetwork {
 		L.add(output_from_layer2);
 		return L;
 	}
+	
+	public INDArray _get_loss_derivative(INDArray target, INDArray output) {
+		
 
+		if (this.loss_func.contentEquals("cross_entropy")) {
+			// (y-t)/y(1-y)
+			INDArray numer = target.sub(output);
+			INDArray denom = output.mul(Nd4j.onesLike(output).sub(output));
+			INDArray loss_derivative = (numer).div(denom);
+			return loss_derivative;
+			
+		} 
+		
+		INDArray loss_derivative = target.sub(output);
+		return loss_derivative;
+	}
+	
+	public INDArray _get_activation_fn_derivative(INDArray x, String act) {
+		if (act.contentEquals("relu")){
+			return _relu_derivative(x);
+		}
+		
+		if (act.contentEquals("tanh")){
+			return _tanh_derivative(x);
+		}
+		
+		return _sigmoid_derivative(x);
+		
+	}
+	
 	public void backpropagate(List<INDArray> layer_outputs, INDArray cur_training_data, INDArray cur_training_labels) {
 		
 		INDArray output_from_layer_1 = layer_outputs.get(0);
 		INDArray output_from_layer_2 = layer_outputs.get(1);
 		
-		INDArray layer2_error = cur_training_labels.sub(output_from_layer_2);
-	    INDArray layer2_delta = layer2_error.mul(_sigmoid_derivative(output_from_layer_2));
+		// Here, for squared loss, the dE/dy is t-y
+		
+		INDArray layer2_error = _get_loss_derivative(cur_training_labels, output_from_layer_2);
+	    INDArray layer2_delta = layer2_error.mul(_get_activation_fn_derivative(output_from_layer_2, "sigmoid"));
 	    
 	    INDArray layer1_error = layer2_delta.mmul(layer2.synaptic_weights.transpose());
-	    INDArray layer1_delta = layer1_error.mul(_sigmoid_derivative(output_from_layer_1));
+	    INDArray layer1_delta = layer1_error.mul(_get_activation_fn_derivative(output_from_layer_1, "relu"));
 	    
 	    INDArray layer1_adjustment = cur_training_data.transpose().mmul(layer1_delta).mul(learning_rate);
 	    INDArray layer2_adjustment = output_from_layer_1.transpose().mmul(layer2_delta).mul(learning_rate);
@@ -378,9 +411,10 @@ public class NeuralNetwork {
         NeuronLayer layer1 = new NeuronLayer(501, 50, 12345);
         NeuronLayer layer2 = new NeuronLayer(50, 1, 12345);
         double learning_rate = 0.01;
+        String lf = "cross_entropy";
         
         // Combine the layers to create a neural network
-        NeuralNetwork neural_network = new NeuralNetwork(layer1, layer2, learning_rate);
+        NeuralNetwork neural_network = new NeuralNetwork(layer1, layer2, learning_rate, lf);
         
         System.out.println("Initial weights \n");
         neural_network.print_weights();

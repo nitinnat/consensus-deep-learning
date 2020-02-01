@@ -106,6 +106,7 @@ public class PegasosNode implements Node {
 	private static final String PAR_CYCLES_FOR_CONVERGENCE = "cyclesforconvergence";
 	private static final String PAR_CONVERGENCE_EPSILON = "convergenceepsilon";
 	private static final String PAR_RANDOM_SEED = "randomseed";
+	private static final String PAR_LOSS_FUNCTION = "lossfunction";
 	private static long counterID = -1; // used to generate unique IDs 
 	protected Protocol[] protocol = null; //The protocols on this node.
 	
@@ -151,6 +152,7 @@ public class PegasosNode implements Node {
 	public NeuralNetwork neural_network;
 	public String csv_filename;
 	public String weights_filename;
+	public String loss_func;
 	
 	// Variables to maintain loss
 	public double train_loss = -1;
@@ -232,6 +234,7 @@ public class PegasosNode implements Node {
 		cycles_for_convergence = Configuration.getInt(prefix + "." + PAR_CYCLES_FOR_CONVERGENCE, 10);
 		convergence_epsilon = Configuration.getDouble(prefix + "." + PAR_CONVERGENCE_EPSILON, 0.01);
 		random_seed = Configuration.getLong(prefix + "." + PAR_RANDOM_SEED, 12345);
+		loss_func = (String)Configuration.getString(prefix + "." + PAR_LOSS_FUNCTION, "squared");
 		
 		System.out.println("model file and train file are saved in: " + resourcepath);
 		CommonState.setNode(this);
@@ -296,7 +299,7 @@ public class PegasosNode implements Node {
         
         
 		// Create a folder for this run if it does not exist
-        String new_dir_name = resourcepath + "/run_" + result.num_run + "_numhidden_" + num_hidden_nodes + "_lr_" + learning_rate + "_networksize_" + Network.size()+ "_randomseed_" + random_seed;
+        String new_dir_name = resourcepath + "/run_" + result.num_run + "_numhidden_" + num_hidden_nodes + "_lr_" + learning_rate + "_networksize_" + Network.size()+ "_randomseed_" + random_seed + "_lf_" + loss_func;
         result.result_dir = new_dir_name;
         System.out.println("Creating csv file to store the results.");
     	result.csv_filename = new_dir_name + "/vpnn_results_temp_" + Network.size() + ".csv";
@@ -362,7 +365,7 @@ public class PegasosNode implements Node {
 	        NeuronLayer layer2 = new NeuronLayer(num_hidden_nodes, num_outputs, random_seed);
 	        
 	        // Combine the layers to create a neural network
-	        result.neural_network = new NeuralNetwork(layer1, layer2, learning_rate);
+	        result.neural_network = new NeuralNetwork(layer1, layer2, learning_rate, loss_func);
 	        
 	        System.out.println("Initial weights \n");
 	        result.neural_network.print_weights();

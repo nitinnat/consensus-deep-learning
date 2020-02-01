@@ -289,6 +289,32 @@ def process_arcene(num_splits, run):
 def process_mnist(num_splits, run):
 
 	feature_splits = 3
+
+	def split_random(df_train, df_test, numsplits):
+		used_indices = []
+		num_features = df_train.shape[1]
+		num_features_split = int(num_features / float(numsplits))
+
+		df_train_splits = []
+		df_test_splits = []
+
+		idx_dict = {}
+		for split in range(numsplits):
+			if split == numsplits - 1:
+				num_features_split = num_features - len(used_indices) - 1
+
+			remaining_indices = [i for i in range(1, num_features) if i not in used_indices]
+			idx = random.sample(remaining_indices, num_features_split)
+			idx_dict[split] = idx
+			df_train_split = df_train.iloc[:,idx]
+			df_test_split = df_test.iloc[:,idx]
+
+			df_train_splits.append(df_train_split)
+			df_test_splits.append(df_test_split)
+
+		return df_train_splits, df_test_splits, idx_dict
+
+
 	main_data_dir = os.path.join(DATA_DIR, "mnist")
 	for i in range(feature_splits):
 		dataset_dir = os.path.join(DATA_DIR, "mnist", "feature_split_{}".format(i+1))
