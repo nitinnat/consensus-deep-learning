@@ -306,7 +306,7 @@ public class PegasosNode implements Node {
         
         
 		// Create a folder for this run if it does not exist
-        String new_dir_name = resourcepath + "/run_" + result.num_run + "_numhidden_" + num_hidden_nodes + "_lr_" + learning_rate + "_networksize_" + Network.size()+ "_randomseed_" + random_seed + "_lf_" + loss_func;
+        String new_dir_name = resourcepath + "/run_" + result.num_run + "_numhidden_" + num_hidden_nodes + "_lr_" + learning_rate + "_networksize_" + Network.size()+ "_randomseed_" + random_seed + "_lf_" + loss_func + "_haf_"+hidden_layer_activation + "_faf_" + final_layer_activation;
         result.result_dir = new_dir_name;
         System.out.println("Creating csv file to store the results.");
     	result.csv_filename = new_dir_name + "/vpnn_results_temp_" + Network.size() + ".csv";
