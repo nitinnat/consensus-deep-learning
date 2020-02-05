@@ -76,6 +76,8 @@ public class NeuralNetwork {
 	double train_auc;
 	double test_auc;
 	String loss_func;
+	String hidden_layer_activation;
+	String final_layer_activation;
 	
 	public static DataSet readCSVDataset(
 	        String csvFileClasspath, int batchSize, int labelIndex, int numClasses)
@@ -86,7 +88,7 @@ public class NeuralNetwork {
 	        DataSetIterator iterator = new RecordReaderDataSetIterator(rr, batchSize, labelIndex, numClasses);
 	        return iterator.next();
 	    }
-	public NeuralNetwork(NeuronLayer layerA, NeuronLayer layerB, double lr, String lf) {
+	public NeuralNetwork(NeuronLayer layerA, NeuronLayer layerB, double lr, String lf, String hla, String fla) {
 		layer1 = layerA;
 		layer2 = layerB;
 		learning_rate = lr;
@@ -95,6 +97,8 @@ public class NeuralNetwork {
 		train_auc = -1;
 		test_auc = -1;
 		loss_func = lf;
+		hidden_layer_activation = hla;
+		final_layer_activation = fla;
 	}
 	
 	public INDArray _sigmoid(INDArray x) {	
@@ -169,10 +173,10 @@ public class NeuralNetwork {
 		// Here, for squared loss, the dE/dy is t-y
 		
 		INDArray layer2_error = _get_loss_derivative(cur_training_labels, output_from_layer_2);
-	    INDArray layer2_delta = layer2_error.mul(_get_activation_fn_derivative(output_from_layer_2, "sigmoid"));
+	    INDArray layer2_delta = layer2_error.mul(_get_activation_fn_derivative(output_from_layer_2, final_layer_activation));
 	    
 	    INDArray layer1_error = layer2_delta.mmul(layer2.synaptic_weights.transpose());
-	    INDArray layer1_delta = layer1_error.mul(_get_activation_fn_derivative(output_from_layer_1, "relu"));
+	    INDArray layer1_delta = layer1_error.mul(_get_activation_fn_derivative(output_from_layer_1, hidden_layer_activation));
 	    
 	    INDArray layer1_adjustment = cur_training_data.transpose().mmul(layer1_delta).mul(learning_rate);
 	    INDArray layer2_adjustment = output_from_layer_1.transpose().mmul(layer2_delta).mul(learning_rate);
@@ -414,7 +418,7 @@ public class NeuralNetwork {
         String lf = "cross_entropy";
         
         // Combine the layers to create a neural network
-        NeuralNetwork neural_network = new NeuralNetwork(layer1, layer2, learning_rate, lf);
+        NeuralNetwork neural_network = new NeuralNetwork(layer1, layer2, learning_rate, lf, "sigmoid", "sigmoid");
         
         System.out.println("Initial weights \n");
         neural_network.print_weights();
