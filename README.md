@@ -13,3 +13,5 @@ Delete the contents of the target folder and run the following commands:
 3. mvn install:install-file -Dfile=lib/jep-2.3.0.jar -DgroupId=org.nfunk -DartifactId=jep -Dversion=2.3.0 -Dpackaging=jar
 
 4. mvn compile
+
+5. Modify the command in https://gist.github.com/Saurabh7/1b5bebb38023bfb38967f62fae6193cc to run the program.
