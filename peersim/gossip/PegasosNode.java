@@ -329,7 +329,7 @@ public class PegasosNode implements Node {
 	    	//result.weights_filename = resourcepath + "/run" + result.num_run + "/vpnn_weights_temp_" + Network.size() + ".csv";
 			System.out.println("Storing in " + result.csv_filename);
 			String opString = "Iter,Node,TrainLoss,TestLoss,TrainAccuracy,TestAccuracy,TrainAUC,TestAUC,Converged,NumConvergedCycles";
-			String opStringPredictions = "Iter,Node,Predictions";
+			String opStringPredictions = "Iter,Node,TrainPredictions,TestPredictions";
 
 			try {
 				System.out.println("Writing header to " + result.csv_filename);
