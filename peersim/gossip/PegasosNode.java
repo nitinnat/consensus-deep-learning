@@ -154,6 +154,7 @@ public class PegasosNode implements Node {
 	public int num_hidden_nodes;
 	public NeuralNetwork neural_network;
 	public String csv_filename;
+	public String csv_predictions_filename;
 	public String weights_filename;
 	public String loss_func;
 	public String hidden_layer_activation;
@@ -287,7 +288,7 @@ public class PegasosNode implements Node {
 		// Determine base dataset name
 		String[] temp_data = resourcepath.split("/");
 		String base_dataset_name = temp_data[temp_data.length - 2];
-        
+        System.out.println("Base Dataset name" + base_dataset_name);
 		
 		// Get train file and test file paths
         String localTrainFilepath = "";
@@ -310,6 +311,7 @@ public class PegasosNode implements Node {
         result.result_dir = new_dir_name;
         System.out.println("Creating csv file to store the results.");
     	result.csv_filename = new_dir_name + "/vpnn_results_temp_" + Network.size() + ".csv";
+    	result.csv_predictions_filename = new_dir_name + "/vpnn_results_temp_" + Network.size() + "_predictions" + ".csv";
         File directory = new File(new_dir_name);
 	    if (! directory.exists()){
 	        directory.mkdir();
@@ -327,12 +329,20 @@ public class PegasosNode implements Node {
 	    	//result.weights_filename = resourcepath + "/run" + result.num_run + "/vpnn_weights_temp_" + Network.size() + ".csv";
 			System.out.println("Storing in " + result.csv_filename);
 			String opString = "Iter,Node,TrainLoss,TestLoss,TrainAccuracy,TestAccuracy,TrainAUC,TestAUC,Converged,NumConvergedCycles";
+			String opStringPredictions = "Iter,Node,Predictions";
+
 			try {
 				System.out.println("Writing header to " + result.csv_filename);
 				BufferedWriter bw = new BufferedWriter(new FileWriter(result.csv_filename));
 				bw.write(opString);
 				bw.write("\n");
 				bw.close();
+
+				System.out.println("Writing header to " + csv_predictions_filename);
+				BufferedWriter bw_predictions = new BufferedWriter(new FileWriter(result.csv_predictions_filename ));
+				bw_predictions.write(opStringPredictions);
+				bw_predictions.write("\n");
+				bw_predictions.close();
 			}
 			catch(Exception e) {}
 	    }
