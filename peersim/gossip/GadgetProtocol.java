@@ -178,14 +178,16 @@ public class GadgetProtocol implements CDProtocol {
 		
 	}
 	
-	public void compute_distributed_voted_stats(String csv_filename, int iter) {
+	public void compute_distributed_voted_stats(String csv_filename, String csv_predictions_filename, int iter) {
 		// Computes losses and accuracies by taking voted predictions across nodes
 		BufferedWriter bw;
+		BufferedWriter bw_predictions;
 		INDArray train_labels = null;
 		INDArray test_labels = null;
 		
 		try {
 			bw = new BufferedWriter(new FileWriter(csv_filename, true));
+			bw_predictions = new BufferedWriter(new FileWriter(csv_predictions_filename, true));
 			
 			// to accumulate all nodes' predictions
 			INDArray all_train_preds = null;
@@ -242,6 +244,9 @@ public class GadgetProtocol implements CDProtocol {
 	        	bw.write(iter + "," + i + ","+ train_loss+ ","+test_loss+','+train_acc+","+test_acc+','+train_auc+","+test_auc+
 	        			", " + String.valueOf(temp_node.converged)+ ", " + temp_node.num_converged_cycles);
 				bw.write("\n");
+				bw_predictions.write(iter + "," + i + "," + "'" +  all_train_preds.toString() + "'" + "," + "'" +  all_test_preds.toString() + "'");
+				bw_predictions.write("\n");		
+				
 			}
 			
 			// Compute average predictions and then the overall AUC using those predictions
@@ -254,6 +259,7 @@ public class GadgetProtocol implements CDProtocol {
 			bw.write("\n");
         	System.out.println("Iter: " + iter + "Overall Train AUC: " + overall_train_auc + " Test AUC: " + overall_test_auc);
 			bw.close();
+			bw_predictions.close();
 		}
 		catch (IOException e) {e.printStackTrace();}
 		
@@ -280,7 +286,8 @@ public void nextCycle(Node node, int pid) {
 		
 		final String resourcepath = pn.resourcepath;
 			System.out.println(iter);
-
+			
+			
 			// If only 1 node exists - then we implement the centralized NN
 			if (Network.size() == 1) {
 				// Train NN for one epoch
@@ -328,8 +335,7 @@ public void nextCycle(Node node, int pid) {
 									" after " + pn.num_converged_cycles + " cycles. No further processing will be done.");
 							pn.neural_network.write_weights_into_file(pn.result_dir + "\\global_weights_centralized.txt");
 						}
-					}
-					
+					}	
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -437,7 +443,7 @@ public void nextCycle(Node node, int pid) {
 					
 					
 					//String csv_filename = resourcepath + "/run" + pn.num_run + "/vpnn_results_temp_" + Network.size() + ".csv";
-					compute_distributed_voted_stats(pn.csv_filename, iter);
+					compute_distributed_voted_stats(pn.csv_filename, pn.csv_predictions_filename, iter);
 					
 			}	
 		}
