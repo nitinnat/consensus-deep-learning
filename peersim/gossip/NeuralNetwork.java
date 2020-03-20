@@ -282,9 +282,10 @@ public class NeuralNetwork {
     
     public void train(INDArray training_set_inputs, INDArray training_set_outputs,
     		INDArray testing_set_inputs, INDArray testing_set_outputs,
-    		int number_of_training_iterations, String csv_filename, int node, int mode, boolean converged) throws IOException {
+    		int number_of_training_iterations, String csv_filename, String csv_predictions_filename, int node, int mode, boolean converged) throws IOException {
     	BufferedWriter bw = new BufferedWriter(new FileWriter(csv_filename, true));
-    		
+    	BufferedWriter bw_predictions = new BufferedWriter(new FileWriter(csv_predictions_filename, true));
+  		
     		
 	    	for (int i=0; i<number_of_training_iterations;i++) {
 	    		
@@ -343,8 +344,12 @@ public class NeuralNetwork {
 						+","+converged+","+0);
 				bw.write("\n");
 				
+				bw_predictions.write(iter + "," + i + "," + "'" +  train_pred.toString() + "'" + "," + "'" +  test_pred.toString() + "'");
+				bw_predictions.write("\n");		
+	
 	    	}
 	    	bw.close();
+	    	bw_predictions.close();
     }
 	
     public void write_weights_into_file(String weights_filename) {

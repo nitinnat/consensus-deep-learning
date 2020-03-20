@@ -295,7 +295,7 @@ public void nextCycle(Node node, int pid) {
 					
 						pn.neural_network.train(pn.train_features, pn.train_labels, 
 												pn.test_features, pn.test_labels, 
-												1, pn.csv_filename,(int)node.getID(), 1, pn.converged);
+												1, pn.csv_filename, pn.csv_predictions_filename, (int)node.getID(), 1, pn.converged);
 						
 						// pn.train_loss represents the loss at the previous cycle
 						// pn.neural_network.train_loss is the train_loss obtained after this cycle.
