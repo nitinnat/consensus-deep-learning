@@ -244,7 +244,13 @@ public class GadgetProtocol implements CDProtocol {
 	        	bw.write(iter + "," + i + ","+ train_loss+ ","+test_loss+','+train_acc+","+test_acc+','+train_auc+","+test_auc+
 	        			", " + String.valueOf(temp_node.converged)+ ", " + temp_node.num_converged_cycles);
 				bw.write("\n");
-				bw_predictions.write(iter + "," + i + "," + "'" +  all_train_preds.toString() + "'" + "," + "'" +  all_test_preds.toString() + "'");
+				bw_predictions.write(iter + "," + i + "," + "'" +  all_train_preds.toString() + "'" + "," + "'" +  all_test_preds.toString() + "'"
+						+ "," + "'" +  temp_node.neural_network.LayerOutputsBeforeActivation.get(0).toString() + "'"
+						+ "," + "'" +  temp_node.neural_network.LayerOutputsBeforeActivation.get(1).toString() + "'"
+						+ "," + "'" +  temp_node.neural_network.LayerOutputsAfterActivation.get(0).toString() + "'"
+						+ "," + "'" +  temp_node.neural_network.LayerOutputsAfterActivation.get(1).toString() + "'"
+						+ "," + "'" +  temp_node.neural_network.LayerWeights.get(0).toString() + "'"
+						+ "," + "'" +  temp_node.neural_network.LayerWeights.get(0).toString() + "'");
 				bw_predictions.write("\n");		
 				
 			}
