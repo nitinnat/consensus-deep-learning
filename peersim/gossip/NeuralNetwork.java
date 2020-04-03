@@ -79,6 +79,12 @@ public class NeuralNetwork {
 	String hidden_layer_activation;
 	String final_layer_activation;
 	
+	// Computed during feedforward stage
+	List<INDArray> LayerOutputsBeforeActivation;
+	List<INDArray> LayerOutputsAfterActivation;
+	List<INDArray> LayerWeights;
+	
+	
 	public static DataSet readCSVDataset(
 	        String csvFileClasspath, int batchSize, int labelIndex, int numClasses)
 	        throws IOException, InterruptedException {
@@ -99,6 +105,11 @@ public class NeuralNetwork {
 		loss_func = lf;
 		hidden_layer_activation = hla;
 		final_layer_activation = fla;
+		LayerOutputsBeforeActivation = new ArrayList<INDArray>(2);
+		LayerOutputsAfterActivation = new ArrayList<INDArray>(2);
+		LayerWeights = new ArrayList<INDArray>(2);
+		System.out.println("Hidden Layer Activation: " + hidden_layer_activation +
+				           ", Final Layer Activation: " + final_layer_activation);
 	}
 	
 	public INDArray _sigmoid(INDArray x) {	
@@ -128,8 +139,49 @@ public class NeuralNetwork {
 	}
     
 	public List<INDArray> feedforward(INDArray inputs) {
-		INDArray output_from_layer1 = _sigmoid(inputs.mmul(layer1.synaptic_weights));
-		INDArray output_from_layer2 = _sigmoid(output_from_layer1.mmul(layer2.synaptic_weights));
+		
+		// We need to save the outputs of the layers before and after activations
+		
+		INDArray output_from_layer1 = Nd4j.zeros(0, 0);
+		INDArray output1_before_activation = inputs.mmul(layer1.synaptic_weights);
+		if (hidden_layer_activation.equalsIgnoreCase("sigmoid")){
+			output_from_layer1 = _sigmoid(output1_before_activation);	
+		}
+		
+		else if (hidden_layer_activation.equalsIgnoreCase("tanh")) {
+			output_from_layer1 = _tanh(inputs.mmul(output1_before_activation));
+		}
+		
+		else if (hidden_layer_activation.equalsIgnoreCase("relu")) {
+			output_from_layer1 = _relu(inputs.mmul(output1_before_activation));
+		}
+		
+		
+		INDArray output_from_layer2 = Nd4j.zeros(0, 0);
+		INDArray output2_before_activation = output_from_layer1.mmul(layer2.synaptic_weights);
+		if (final_layer_activation.equalsIgnoreCase("sigmoid")) {
+			output_from_layer2 = _sigmoid(output2_before_activation);
+		}
+		
+		if (final_layer_activation.equalsIgnoreCase("tanh")) {
+			output_from_layer2 = _tanh(output2_before_activation);
+		}
+		
+		if (final_layer_activation.equalsIgnoreCase("relu")) {
+			output_from_layer2 = _relu(output2_before_activation);
+		}
+		
+		LayerOutputsBeforeActivation.add(0, output1_before_activation);
+		LayerOutputsBeforeActivation.add(1, output2_before_activation);
+		
+		LayerOutputsAfterActivation.add(0, output_from_layer1);
+		LayerOutputsAfterActivation.add(1, output_from_layer2);
+		
+		LayerWeights.add(0, layer1.synaptic_weights);
+		LayerWeights.add(1, layer2.synaptic_weights);
+		
+		
+		// todo: don't return anything, use LayerOutputsAfterActivation
 		List<INDArray> L = new ArrayList<INDArray>(2);
 		L.add(output_from_layer1);
 		L.add(output_from_layer2);
@@ -148,6 +200,7 @@ public class NeuralNetwork {
 			
 		} 
 		
+		// Derivative of Squared Loss
 		INDArray loss_derivative = target.sub(output);
 		return loss_derivative;
 	}
@@ -344,7 +397,12 @@ public class NeuralNetwork {
 						+","+converged+","+0);
 				bw.write("\n");
 				
-				bw_predictions.write(iter + "," + i + "," + "'" +  train_pred.toString() + "'" + "," + "'" +  test_pred.toString() + "'");
+				bw_predictions.write(iter + "," + i + "," + "'" +  train_pred.toString() + "'" + "," + "'" +  test_pred.toString() + "'"+ "," + "'" +  LayerOutputsBeforeActivation.get(0).toString() + "'"
+						+ "," + "'" +  LayerOutputsBeforeActivation.get(1).toString() + "'" 
+						+ "," + "'" +  LayerOutputsAfterActivation.get(0).toString() + "'"
+						+ "," + "'" +  LayerOutputsAfterActivation.get(1).toString() + "'"
+						+ "," + "'" +  LayerWeights.get(0).toString() + "'"
+						+ "," + "'" +  LayerWeights.get(1).toString() + "'");
 				bw_predictions.write("\n");		
 	
 	    	}
