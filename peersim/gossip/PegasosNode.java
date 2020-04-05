@@ -311,7 +311,7 @@ public class PegasosNode implements Node {
         result.result_dir = new_dir_name;
         System.out.println("Creating csv file to store the results.");
     	result.csv_filename = new_dir_name + "/vpnn_results_temp_" + Network.size() + ".csv";
-    	result.csv_predictions_filename = new_dir_name + "/vpnn_results_temp_" + Network.size() + "_predictions" + ".csv";
+    	result.csv_predictions_filename = new_dir_name + "/vpnn_results_temp_" + Network.size() + "_predictions";
         File directory = new File(new_dir_name);
 	    if (! directory.exists()){
 	        directory.mkdir();
@@ -338,11 +338,7 @@ public class PegasosNode implements Node {
 				bw.write("\n");
 				bw.close();
 
-				System.out.println("Writing header to " + csv_predictions_filename);
-				BufferedWriter bw_predictions = new BufferedWriter(new FileWriter(result.csv_predictions_filename ));
-				bw_predictions.write(opStringPredictions);
-				bw_predictions.write("\n");
-				bw_predictions.close();
+	
 			}
 			catch(Exception e) {}
 	    }
