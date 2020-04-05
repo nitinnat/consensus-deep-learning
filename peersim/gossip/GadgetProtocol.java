@@ -187,8 +187,21 @@ public class GadgetProtocol implements CDProtocol {
 		
 		try {
 			bw = new BufferedWriter(new FileWriter(csv_filename, true));
-			bw_predictions = new BufferedWriter(new FileWriter(csv_predictions_filename, true));
+			System.out.println("Writing header to " + csv_predictions_filename);
+			BufferedWriter bw_predictions_train = new BufferedWriter(new FileWriter(csv_predictions_filename+ "_train_" + iter + ".csv"));
+			String opStringPredictions = "Iter,Node,Id,Predictions";
+			bw_predictions_train.write(opStringPredictions);
+			bw_predictions_train.write("\n");
+			BufferedWriter bw_predictions_test = new BufferedWriter(new FileWriter(csv_predictions_filename+ "_test_" + iter + ".csv"));
+			bw_predictions_test.write(opStringPredictions);
+			bw_predictions_test.write("\n");
 			
+			BufferedWriter bw_activations = new BufferedWriter(new FileWriter(csv_predictions_filename+ "_activations_" + iter + ".csv"));
+			String opStringActivations = "Iter,Node,Layer1BeforeAct,Layer1AfterAct,Layer2BeforeAct,Layer2AfterAct,Layer1Wts,Layer2Wts";
+			bw_activations.write(opStringActivations);
+			bw_activations.write("\n");
+//			bw_activations		
+//			bw_predictions.close();			
 			// to accumulate all nodes' predictions
 			INDArray all_train_preds = null;
 			INDArray all_test_preds = null;
@@ -244,15 +257,24 @@ public class GadgetProtocol implements CDProtocol {
 	        	bw.write(iter + "," + i + ","+ train_loss+ ","+test_loss+','+train_acc+","+test_acc+','+train_auc+","+test_auc+
 	        			", " + String.valueOf(temp_node.converged)+ ", " + temp_node.num_converged_cycles);
 				bw.write("\n");
-				bw_predictions.write(iter + "," + i + "," + "'" +  all_train_preds.toString() + "'" + "," + "'" +  all_test_preds.toString() + "'"
+				bw_activations.write(iter + "," + i 
 						+ "," + "'" +  temp_node.neural_network.LayerOutputsBeforeActivation.get(0).toString() + "'"
 						+ "," + "'" +  temp_node.neural_network.LayerOutputsBeforeActivation.get(1).toString() + "'"
 						+ "," + "'" +  temp_node.neural_network.LayerOutputsAfterActivation.get(0).toString() + "'"
 						+ "," + "'" +  temp_node.neural_network.LayerOutputsAfterActivation.get(1).toString() + "'"
 						+ "," + "'" +  temp_node.neural_network.LayerWeights.get(0).toString() + "'"
 						+ "," + "'" +  temp_node.neural_network.LayerWeights.get(0).toString() + "'");
-				bw_predictions.write("\n");		
-				
+				bw_activations.write("\n");		
+				for(int idx=0; idx < all_train_preds.size(0); idx++)
+				{
+				bw_predictions_train.write(iter + "," + i + "," + idx + "," + all_train_preds.getFloat(idx));
+				bw_predictions_train.write("\n");
+				}
+				for(int idx=0; idx < all_test_preds.size(0); idx++)
+				{
+				bw_predictions_test.write(iter + "," + i + "," + idx + "," + all_test_preds.getFloat(idx));
+				bw_predictions_test.write("\n");
+				}				
 			}
 			
 			// Compute average predictions and then the overall AUC using those predictions
@@ -265,7 +287,7 @@ public class GadgetProtocol implements CDProtocol {
 			bw.write("\n");
         	System.out.println("Iter: " + iter + "Overall Train AUC: " + overall_train_auc + " Test AUC: " + overall_test_auc);
 			bw.close();
-			bw_predictions.close();
+			bw_predictions_train.close();
 		}
 		catch (IOException e) {e.printStackTrace();}
 		
