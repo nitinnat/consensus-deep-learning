@@ -257,14 +257,16 @@ public class GadgetProtocol implements CDProtocol {
 	        	bw.write(iter + "," + i + ","+ train_loss+ ","+test_loss+','+train_acc+","+test_acc+','+train_auc+","+test_auc+
 	        			", " + String.valueOf(temp_node.converged)+ ", " + temp_node.num_converged_cycles);
 				bw.write("\n");
-				bw_activations.write(iter + "," + i 
-						+ "," + "'" +  temp_node.neural_network.LayerOutputsBeforeActivation.get(0).toString() + "'"
-						+ "," + "'" +  temp_node.neural_network.LayerOutputsBeforeActivation.get(1).toString() + "'"
-						+ "," + "'" +  temp_node.neural_network.LayerOutputsAfterActivation.get(0).toString() + "'"
-						+ "," + "'" +  temp_node.neural_network.LayerOutputsAfterActivation.get(1).toString() + "'"
-						+ "," + "'" +  temp_node.neural_network.LayerWeights.get(0).toString() + "'"
-						+ "," + "'" +  temp_node.neural_network.LayerWeights.get(0).toString() + "'");
-				bw_activations.write("\n");		
+				
+//				bw_activations.write(iter + "," + i 
+//						+ "," + "'" +  temp_node.neural_network.LayerOutputsBeforeActivation.get(0).toString() + "'"
+//						+ "," + "'" +  temp_node.neural_network.LayerOutputsBeforeActivation.get(1).toString() + "'"
+//						+ "," + "'" +  temp_node.neural_network.LayerOutputsAfterActivation.get(0).toString() + "'"
+//						+ "," + "'" +  temp_node.neural_network.LayerOutputsAfterActivation.get(1).toString() + "'"
+//						+ "," + "'" +  temp_node.neural_network.LayerWeights.get(0).toString() + "'"
+//						+ "," + "'" +  temp_node.neural_network.LayerWeights.get(0).toString() + "'");
+//				bw_activations.write("\n");	
+				
 				for(int idx=0; idx < all_train_preds.size(0); idx++)
 				{
 				bw_predictions_train.write(iter + "," + i + "," + idx + "," + all_train_preds.getFloat(idx));
@@ -288,6 +290,8 @@ public class GadgetProtocol implements CDProtocol {
         	System.out.println("Iter: " + iter + "Overall Train AUC: " + overall_train_auc + " Test AUC: " + overall_test_auc);
 			bw.close();
 			bw_predictions_train.close();
+			bw_predictions_test.close();
+			bw_activations.close();
 		}
 		catch (IOException e) {e.printStackTrace();}
 		
