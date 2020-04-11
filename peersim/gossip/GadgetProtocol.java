@@ -281,7 +281,7 @@ public class GadgetProtocol implements CDProtocol {
 				}
 				bw_predictions_train.close();
 				bw_predictions_train=null;
-
+				System.gc();
 
 				for(int idx=0; idx < all_test_preds.size(0); idx++)
 				{
@@ -290,6 +290,7 @@ public class GadgetProtocol implements CDProtocol {
 				}
 				bw_predictions_test.close();
 				bw_predictions_test=null;
+				System.gc();
 			}
 			
 			// Compute average predictions and then the overall AUC using those predictions
