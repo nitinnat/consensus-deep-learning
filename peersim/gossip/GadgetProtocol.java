@@ -192,12 +192,14 @@ public class GadgetProtocol implements CDProtocol {
 			String opStringPredictions = "Iter,Node,Id,Predictions";
 			bw_predictions_train.write(opStringPredictions);
 			bw_predictions_train.write("\n");
-			bw_predictions_train.flush();
+			bw_predictions_train.close();
+			bw_predictions_train = null;
 			
 			BufferedWriter bw_predictions_test = new BufferedWriter(new FileWriter(csv_predictions_filename+ "_test_" + iter + ".csv"));
 			bw_predictions_test.write(opStringPredictions);
 			bw_predictions_test.write("\n");
 			bw_predictions_test.flush();
+			bw_predictions_test = null;
 			
 			BufferedWriter bw_activations = new BufferedWriter(new FileWriter(csv_predictions_filename+ "_activations_" + iter + ".csv"));
 			String opStringActivations = "Iter,Node,Layer1BeforeAct,Layer1AfterAct,Layer2BeforeAct,Layer2AfterAct,Layer1Wts,Layer2Wts";
@@ -269,12 +271,16 @@ public class GadgetProtocol implements CDProtocol {
 //						+ "," + "'" +  temp_node.neural_network.LayerWeights.get(0).toString() + "'"
 //						+ "," + "'" +  temp_node.neural_network.LayerWeights.get(0).toString() + "'");
 //				bw_activations.write("\n");	
+				bw_predictions_train = new BufferedWriter(new FileWriter(csv_predictions_filename+ "_train_" + iter + ".csv"));
+				bw_predictions_test = new BufferedWriter(new FileWriter(csv_predictions_filename+ "_test_" + iter + ".csv"));
+
 				for(int idx=0; idx < all_train_preds.size(0); idx++)
 				{
 				bw_predictions_train.write(iter + "," + i + "," + idx + "," + all_train_preds.getFloat(idx));
 				bw_predictions_train.write("\n");
 				}
-				bw_predictions_train.flush();
+				bw_predictions_train.close();
+				bw_predictions_train=null;
 
 
 				for(int idx=0; idx < all_test_preds.size(0); idx++)
@@ -282,7 +288,8 @@ public class GadgetProtocol implements CDProtocol {
 				bw_predictions_test.write(iter + "," + i + "," + idx + "," + all_test_preds.getFloat(idx));
 				bw_predictions_test.write("\n");
 				}
-				bw_predictions_test.flush();
+				bw_predictions_test.close();
+				bw_predictions_test=null;
 			}
 			
 			// Compute average predictions and then the overall AUC using those predictions
