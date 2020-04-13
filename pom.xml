@@ -314,7 +314,7 @@
                     <source>${java.version}</source>
                     <target>${java.version}</target>
 <useIncrementalCompilation>false</useIncrementalCompilation>                    
-<includes><include>peersim/gossip/*.java</include><include>peersim/Simulator.java</include></includes>
+<includes><include>peersim/gossip/*.java</include></includes>
                 </configuration>
             </plugin>
         </plugins>
