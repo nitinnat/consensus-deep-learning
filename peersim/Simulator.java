@@ -164,7 +164,6 @@ public static void main(String[] args)
 	final int SIMID = getSimID();
 	if( SIMID == UNKNOWN )
 	{
-
 		System.err.println(
 		    "Simulator: unable to determine simulation engine type");
 		return;
